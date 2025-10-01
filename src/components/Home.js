@@ -1,5 +1,6 @@
 import React from 'react';
 import { supabase } from '../supabaseClient';
+import Projects from './Projects';
 import './Home.css';
 
 const Home = () => {
@@ -15,7 +16,7 @@ const Home = () => {
   return (
     <div className="home-container">
       <div className="home-content">
-        <h1>hola</h1>
+        <Projects />
         <button onClick={handleLogout} className="logout-button">
           Logout
         </button>
