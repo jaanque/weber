@@ -4,6 +4,7 @@ import { supabase } from './supabaseClient';
 import Home from './components/Home';
 import Login from './components/Login';
 import SignUp from './components/SignUp';
+import Welcome from './components/Welcome';
 import './App.css';
 
 function App() {
@@ -28,12 +29,12 @@ function App() {
 
   useEffect(() => {
     if (session) {
-      if (location.pathname === '/login' || location.pathname === '/signup') {
+      if (location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/welcome') {
         navigate('/');
       }
     } else {
       if (location.pathname === '/') {
-        navigate('/login');
+        navigate('/welcome');
       }
     }
   }, [session, navigate, location.pathname]);
@@ -43,7 +44,8 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
-        <Route path="/" element={session ? <Home /> : <Login />} />
+        <Route path="/welcome" element={<Welcome />} />
+        <Route path="/" element={session ? <Home /> : <Welcome />} />
       </Routes>
     </div>
   );
