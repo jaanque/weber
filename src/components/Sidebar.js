@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import './Sidebar.css';
 
-const Sidebar = () => {
+const Sidebar = ({ onNewProjectClick }) => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
@@ -14,6 +14,9 @@ const Sidebar = () => {
         <h2>WebAR</h2>
       </div>
       <nav className="sidebar-nav">
+        <button onClick={onNewProjectClick} className="new-project-button">
+          + New Project
+        </button>
         <ul>
           <li>
             <Link to="/">Projects</Link>

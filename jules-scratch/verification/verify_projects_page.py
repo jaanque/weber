@@ -39,10 +39,13 @@ async def main():
             # Verify the "Projects" heading is inside the main content
             await expect(page.get_by_role("heading", name="Your Projects")).to_be_visible()
 
-            # Verify the logout button is in the sidebar
-            await expect(page.get_by_role("button", name="Logout")).to_be_visible()
+            # Click the "+ New Project" button in the sidebar
+            await page.get_by_role("button", name="+ New Project").click()
 
-            # Take a screenshot of the new layout
+            # Verify the modal is visible
+            await expect(page.get_by_role("heading", name="New Project")).to_be_visible()
+
+            # Take a screenshot of the modal
             screenshot_path = "jules-scratch/verification/verification.png"
             await page.screenshot(path=screenshot_path)
             print(f"Screenshot saved to {screenshot_path}")

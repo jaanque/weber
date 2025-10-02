@@ -23,7 +23,27 @@
 
 .sidebar-nav {
   flex-grow: 1;
-  padding: 20px 0;
+  padding: 20px 10px;
+}
+
+.new-project-button {
+  width: 100%;
+  padding: 12px 20px;
+  margin-bottom: 20px;
+  background-color: #ffffff;
+  color: #007bff;
+  border: 1px solid #007bff;
+  border-radius: 24px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.new-project-button:hover {
+  background-color: #007bff;
+  color: #ffffff;
 }
 
 .sidebar-nav ul {

@@ -5,16 +5,55 @@ import Home from './components/Home';
 import Login from './components/Login';
 import SignUp from './components/SignUp';
 import Sidebar from './components/Sidebar';
+import NewProjectModal from './components/NewProjectModal';
 import './App.css';
 
-const AuthenticatedLayout = () => (
-  <div className="app-layout">
-    <Sidebar />
-    <main className="main-content">
-      <Outlet />
-    </main>
-  </div>
-);
+const AuthenticatedLayout = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [projects, setProjects] = useState([]);
+  const [loadingProjects, setLoadingProjects] = useState(true);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      setLoadingProjects(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data, error } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching projects:', error);
+        } else {
+          setProjects(data);
+        }
+      }
+      setLoadingProjects(false);
+    };
+
+    fetchProjects();
+  }, []);
+
+  const handleProjectAdded = (newProject) => {
+    setProjects((currentProjects) => [newProject, ...currentProjects]);
+  };
+
+  return (
+    <div className="app-layout">
+      <Sidebar onNewProjectClick={() => setIsModalOpen(true)} />
+      <main className="main-content">
+        <Outlet context={{ projects, setProjects, loadingProjects }} />
+      </main>
+      <NewProjectModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onProjectAdded={handleProjectAdded}
+      />
+    </div>
+  );
+};
 
 function App() {
   const [session, setSession] = useState(null);
