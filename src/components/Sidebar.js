@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import { FaPlus, FaFolder, FaSignOutAlt } from 'react-icons/fa';
 import './Sidebar.css';
 
 const Sidebar = ({ onNewProjectClick, isCollapsed, toggleSidebar }) => {
@@ -18,13 +19,13 @@ const Sidebar = ({ onNewProjectClick, isCollapsed, toggleSidebar }) => {
       </div>
       <nav className="sidebar-nav">
         <button onClick={onNewProjectClick} className="new-project-button">
-          <span className="icon">+</span>
+          <span className="icon"><FaPlus /></span>
           {!isCollapsed && <span className="text">New Project</span>}
         </button>
         <ul>
           <li>
             <Link to="/">
-              <span className="icon">📄</span>
+              <span className="icon"><FaFolder /></span>
               {!isCollapsed && <span className="text">Projects</span>}
             </Link>
           </li>
@@ -32,7 +33,7 @@ const Sidebar = ({ onNewProjectClick, isCollapsed, toggleSidebar }) => {
       </nav>
       <div className="sidebar-footer">
         <button onClick={handleLogout} className="logout-button">
-          <span className="icon">🚪</span>
+          <span className="icon"><FaSignOutAlt /></span>
           {!isCollapsed && <span className="text">Logout</span>}
         </button>
       </div>

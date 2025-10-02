@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDrag, useDrop } from 'react-dnd';
+import { FaFont } from 'react-icons/fa';
 import { ItemTypes } from './ItemTypes';
 import { supabase } from '../supabaseClient';
 import './Canvas.css';
@@ -146,7 +147,7 @@ const Canvas = () => {
         </header>
         <div className="canvas-body">
             <div className="canvas-toolbar">
-                <DraggableTool type={ItemTypes.TEXT} icon="T" />
+                <DraggableTool type={ItemTypes.TEXT} icon={<FaFont />} />
             </div>
             <div ref={node => { canvasRef.current = node; drop(node); }} className="canvas-area">
                 {Object.values(droppedItems).map((item) => (
