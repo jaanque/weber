@@ -1,13 +1,12 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDrag, useDrop } from 'react-dnd';
-import { FaFont } from 'react-icons/fa';
+import { FaFont, FaArrowLeft } from 'react-icons/fa';
 import { ItemTypes } from './ItemTypes';
 import { supabase } from '../supabaseClient';
 import './Canvas.css';
 
-// The draggable tool in the toolbar
-const DraggableTool = ({ type, icon }) => {
+const DraggableTool = ({ type, icon, text }) => {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: type,
     item: { type: type },
@@ -22,12 +21,12 @@ const DraggableTool = ({ type, icon }) => {
       className="tool-item"
       style={{ opacity: isDragging ? 0.5 : 1 }}
     >
-      {icon}
+      <span className="tool-icon">{icon}</span>
+      <span className="tool-text">{text}</span>
     </div>
   );
 };
 
-// The component that has been dropped onto the canvas and can be moved
 const DraggableDroppedItem = ({ id, left, top, text, onTextChange }) => {
     const [{ isDragging }, drag] = useDrag(() => ({
         type: ItemTypes.TEXT,
@@ -141,13 +140,13 @@ const Canvas = () => {
     <div className="canvas-container">
         <header className="canvas-header">
             <button onClick={() => navigate('/')} className="back-button">
-                &larr;
+                <FaArrowLeft />
             </button>
             <h1>{projectName}</h1>
         </header>
         <div className="canvas-body">
             <div className="canvas-toolbar">
-                <DraggableTool type={ItemTypes.TEXT} icon={<FaFont />} />
+                <DraggableTool type={ItemTypes.TEXT} icon={<FaFont />} text="Text" />
             </div>
             <div ref={node => { canvasRef.current = node; drop(node); }} className="canvas-area">
                 {Object.values(droppedItems).map((item) => (

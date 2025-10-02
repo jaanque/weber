@@ -37,7 +37,7 @@
 }
 
 .canvas-toolbar {
-  width: 60px;
+  width: 150px; /* Increased width to accommodate icon and text */
   padding: 20px 10px;
   background-color: var(--sidebar-background);
   border-right: 1px solid var(--border-color);
@@ -47,8 +47,8 @@
 }
 
 .tool-item {
-  width: 40px;
-  height: 40px;
+  width: 100%;
+  padding: 10px;
   margin-bottom: 12px;
   background-color: #ffffff;
   border: 1px solid var(--border-color);
@@ -56,15 +56,19 @@
   cursor: grab;
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 18px;
+  justify-content: flex-start; /* Align items to the start */
+  font-weight: 500;
+  font-size: 16px;
   transition: background-color 0.2s, box-shadow 0.2s;
 }
 
 .tool-item:hover {
   background-color: #f0f0f0;
   box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+.tool-icon {
+  margin-right: 10px;
 }
 
 .canvas-area {

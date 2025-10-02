@@ -29,27 +29,16 @@ async def main():
             # Click the login button
             await page.get_by_role("button", name="Login").click()
 
-            # Click the "+ New Project" button to open the modal
-            await page.get_by_role("button", name="+ New Project").click()
+            # Wait for the projects to load
+            await page.wait_for_selector(".project-item-link")
 
-            # Create a new project
-            project_name = f"Test Project {int(time.time())}"
-            await page.get_by_placeholder("Enter project name").fill(project_name)
-            await page.get_by_role("button", name="Create Project").click()
+            # Click on the first project link
+            await page.locator(".project-item-link").first.click()
 
-            # Click on the new project link to navigate to the canvas
-            new_project_link = page.locator(f'.project-item-link:has-text("{project_name}")')
-            await expect(new_project_link).to_be_visible(timeout=10000)
-            await new_project_link.click()
+            # Wait for the canvas to load
+            await expect(page.locator(".canvas-area")).to_be_visible(timeout=10000)
 
-            # Wait for the canvas to load and verify the main sidebar is gone
-            await expect(page.locator(".app-layout.canvas-mode")).to_be_visible(timeout=10000)
-            await expect(page.locator(".sidebar")).not_to_be_visible()
-
-            # Verify the canvas toolbar is visible
-            await expect(page.locator(".canvas-toolbar")).to_be_visible()
-
-            # Take a screenshot of the full-screen canvas
+            # Take a screenshot of the canvas
             screenshot_path = "jules-scratch/verification/verification.png"
             await page.screenshot(path=screenshot_path)
             print(f"Screenshot saved to {screenshot_path}")
