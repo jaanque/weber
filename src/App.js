@@ -1,20 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import Home from './components/Home';
 import Login from './components/Login';
 import SignUp from './components/SignUp';
+import Sidebar from './components/Sidebar';
 import './App.css';
+
+const AuthenticatedLayout = () => (
+  <div className="app-layout">
+    <Sidebar />
+    <main className="main-content">
+      <Outlet />
+    </main>
+  </div>
+);
 
 function App() {
   const [session, setSession] = useState(null);
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
+      setLoading(false);
     };
 
     getSession();
@@ -26,26 +36,18 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  useEffect(() => {
-    if (session) {
-      if (location.pathname === '/login' || location.pathname === '/signup') {
-        navigate('/');
-      }
-    } else {
-      if (location.pathname === '/') {
-        navigate('/login');
-      }
-    }
-  }, [session, navigate, location.pathname]);
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   return (
-    <div className="container">
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/" element={session ? <Home /> : <Login />} />
-      </Routes>
-    </div>
+    <Routes>
+      <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
+      <Route path="/signup" element={!session ? <SignUp /> : <Navigate to="/" />} />
+      <Route element={session ? <AuthenticatedLayout /> : <Navigate to="/login" />}>
+        <Route path="/" element={<Home />} />
+      </Route>
+    </Routes>
   );
 }
 

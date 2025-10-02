@@ -18,7 +18,8 @@ const SignUp = () => {
         password: password,
       });
       if (error) throw error;
-      alert('Check your email for the login link!');
+      // The user is automatically logged in on sign up in dev environment,
+      // so the alert is unnecessary and can interfere with testing.
     } catch (error) {
       alert(error.error_description || error.message);
     } finally {
