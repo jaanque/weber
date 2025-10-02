@@ -53,17 +53,25 @@ const Canvas = () => {
   const [guides, setGuides] = useState([]);
   const [distanceLines, setDistanceLines] = useState([]);
   const [selectedItemId, setSelectedItemId] = useState(null);
+  const itemsRef = useRef(items);
 
-  const canvasRef = useRef(null);
+  // Keep a ref to the latest items state to avoid stale closures in debounced function
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
 
   // --- Database Operations ---
   const saveItem = useCallback(
-    debounce(async (itemToSave) => {
+    debounce(async (itemId) => {
+      const itemToSave = itemsRef.current[itemId];
+      if (!itemToSave) return;
+
       const { id, left, top, content, width, height, style } = itemToSave;
       const updateData = {
           left_pos: left,
           top_pos: top,
-          content: content, // Ensure content is explicitly included
+          content,
           width,
           height,
           style
@@ -73,10 +81,11 @@ const Canvas = () => {
         .from('canvas_items')
         .update(updateData)
         .eq('id', id);
+
       if (error) {
         console.error('Error updating item:', error);
       }
-    }, 500),
+    }, 1000), // Increased debounce delay
     []
   );
 
@@ -179,41 +188,33 @@ const Canvas = () => {
 
   // --- Item Manipulation Callbacks ---
   const moveItem = useCallback((id, left, top) => {
-    setItems(prevItems => {
-        const newItems = { ...prevItems };
-        if (newItems[id]) {
-            const updatedItem = { ...newItems[id], left, top };
-            saveItem(updatedItem);
-            return { ...newItems, [id]: updatedItem };
-        }
-        return newItems;
-    });
+    setItems(prevItems => ({
+        ...prevItems,
+        [id]: { ...prevItems[id], left, top }
+    }));
+    saveItem(id);
   }, [saveItem]);
 
   const handleTextChange = (id, newText) => {
-    setItems(prevItems => {
-      const updatedItem = { ...prevItems[id], content: newText };
-      saveItem(updatedItem);
-      return {
-        ...prevItems,
-        [id]: updatedItem,
-      };
-    });
+    setItems(prevItems => ({
+      ...prevItems,
+      [id]: { ...prevItems[id], content: newText },
+    }));
+    saveItem(id);
   };
 
   const handleResize = useCallback((id, width, height) => {
     setItems(prevItems => {
         const item = prevItems[id];
         if (item && (item.width !== width || item.height !== height)) {
-            const updatedItem = { ...item, width, height };
-            saveItem(updatedItem);
             return {
                 ...prevItems,
-                [id]: updatedItem,
+                [id]: { ...item, width, height },
             };
         }
         return prevItems;
     });
+    saveItem(id);
   }, [saveItem]);
 
   const handleSelect = (id) => {
@@ -228,18 +229,11 @@ const Canvas = () => {
 
   const handleStyleChange = (newStyle) => {
     if (!selectedItemId) return;
-
-    setItems(prevItems => {
-        const item = prevItems[selectedItemId];
-        if (!item) return prevItems;
-
-        const updatedItem = { ...item, style: newStyle };
-        saveItem(updatedItem);
-        return {
-            ...prevItems,
-            [selectedItemId]: updatedItem,
-        };
-    });
+    setItems(prevItems => ({
+        ...prevItems,
+        [selectedItemId]: { ...prevItems[selectedItemId], style: newStyle },
+    }));
+    saveItem(selectedItemId);
   };
 
   // --- Drag and Drop Logic ---
@@ -283,7 +277,7 @@ const Canvas = () => {
 
       moveItem(id, newLeft, newTop);
     },
-  }), [moveItem, items]);
+  }), [moveItem]);
 
   const [{ isOver: isTrashOver }, trashDrop] = useDrop(() => ({
     accept: ItemTypes.TEXT,
@@ -294,6 +288,8 @@ const Canvas = () => {
       isOver: !!monitor.isOver(),
     }),
   }));
+
+  const canvasRef = useRef(null);
 
   useEffect(() => {
     const handleDragStart = () => setIsDragging(true);
