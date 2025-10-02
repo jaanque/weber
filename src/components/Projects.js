@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import './Projects.css';
 
 const Projects = ({ projects, loading }) => {
@@ -16,9 +17,11 @@ const Projects = ({ projects, loading }) => {
       ) : (
         <div className="project-list">
           {projects.map((project) => (
-            <div key={project.id} className="project-item">
-              {project.name}
-            </div>
+            <Link to={`/projects/${project.id}`} key={project.id} className="project-item-link">
+              <div className="project-item">
+                {project.name}
+              </div>
+            </Link>
           ))}
         </div>
       )}

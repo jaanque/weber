@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { supabase } from './supabaseClient';
 import Home from './components/Home';
@@ -6,6 +8,7 @@ import Login from './components/Login';
 import SignUp from './components/SignUp';
 import Sidebar from './components/Sidebar';
 import NewProjectModal from './components/NewProjectModal';
+import Canvas from './components/Canvas';
 import './App.css';
 
 const AuthenticatedLayout = () => {
@@ -80,13 +83,16 @@ function App() {
   }
 
   return (
-    <Routes>
-      <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
-      <Route path="/signup" element={!session ? <SignUp /> : <Navigate to="/" />} />
-      <Route element={session ? <AuthenticatedLayout /> : <Navigate to="/login" />}>
-        <Route path="/" element={<Home />} />
-      </Route>
-    </Routes>
+    <DndProvider backend={HTML5Backend}>
+      <Routes>
+        <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
+        <Route path="/signup" element={!session ? <SignUp /> : <Navigate to="/" />} />
+        <Route element={session ? <AuthenticatedLayout /> : <Navigate to="/login" />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/projects/:projectId" element={<Canvas />} />
+        </Route>
+      </Routes>
+    </DndProvider>
   );
 }
 
