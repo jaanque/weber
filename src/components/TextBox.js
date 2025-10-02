@@ -1,19 +1,29 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useState, useLayoutEffect } from 'react';
 import { useDrag } from 'react-dnd';
 import { ItemTypes } from './ItemTypes';
 
 const TextBox = ({ id, left, top, width, height, text, style = {}, onTextChange, onResize, onSelect, isSelected }) => {
     const itemRef = useRef(null);
+    const textareaRef = useRef(null);
     const [isEditing, setIsEditing] = useState(false);
 
-    useEffect(() => {
-        if (itemRef.current && onResize) {
-            const { clientWidth, clientHeight } = itemRef.current;
-            if (width !== clientWidth || height !== clientHeight) {
-                onResize(id, clientWidth, clientHeight);
+    // Auto-resize height based on content
+    useLayoutEffect(() => {
+        const textarea = textareaRef.current;
+        if (textarea) {
+            // Temporarily reset height to calculate the new scrollHeight
+            textarea.style.height = 'auto';
+            const newHeight = textarea.scrollHeight;
+
+            // Set the new height on the textarea itself to make the parent div grow
+            textarea.style.height = `${newHeight}px`;
+
+            // Notify parent if the container's height needs to be updated
+            if (height !== newHeight) {
+                onResize(id, width, newHeight);
             }
         }
-    }, [id, onResize, width, height, text]);
+    }, [text, width, id, height, onResize]);
 
     const [{ isDragging }, drag] = useDrag(() => ({
         type: ItemTypes.TEXT,
@@ -49,12 +59,13 @@ const TextBox = ({ id, left, top, width, height, text, style = {}, onTextChange,
         position: 'absolute',
         left,
         top,
+        width,
+        height,
         cursor: isEditing ? 'text' : 'move',
         opacity: isDragging ? 0.5 : 1,
         border: isSelected ? '2px solid #3b82f6' : '2px solid transparent',
-        padding: '8px',
         boxSizing: 'border-box',
-        ...style, // Apply styles for font weight, style, size etc.
+        ...style,
     };
 
     return (
@@ -66,6 +77,7 @@ const TextBox = ({ id, left, top, width, height, text, style = {}, onTextChange,
             onDoubleClick={handleDoubleClick}
         >
             <textarea
+                ref={textareaRef}
                 value={text}
                 onChange={handleTextChange}
                 onBlur={handleBlur}
@@ -74,7 +86,7 @@ const TextBox = ({ id, left, top, width, height, text, style = {}, onTextChange,
                     width: '100%',
                     height: '100%',
                     border: 'none',
-                    padding: '0',
+                    padding: '8px',
                     margin: '0',
                     background: 'transparent',
                     resize: 'none',
@@ -84,6 +96,8 @@ const TextBox = ({ id, left, top, width, height, text, style = {}, onTextChange,
                     fontSize: 'inherit',
                     fontWeight: 'inherit',
                     fontStyle: 'inherit',
+                    boxSizing: 'border-box',
+                    overflow: 'hidden',
                 }}
                 spellCheck="false"
                 readOnly={!isEditing}

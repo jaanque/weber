@@ -63,7 +63,7 @@ const Canvas = () => {
       const updateData = {
           left_pos: left,
           top_pos: top,
-          content,
+          content: content, // Ensure content is explicitly included
           width,
           height,
           style
