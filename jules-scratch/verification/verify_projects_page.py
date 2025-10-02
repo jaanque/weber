@@ -29,19 +29,27 @@ async def main():
             # Click the login button
             await page.get_by_role("button", name="Login").click()
 
-            # Verify the sidebar is visible and expanded by default
+            # Verify the sidebar is visible and expanded on the home page
             await expect(page.locator(".sidebar:not(.collapsed)")).to_be_visible(timeout=15000)
 
-            # Find and click the toggle button
-            await page.locator(".toggle-button").click()
+            # Click the "+ New Project" button to open the modal
+            await page.get_by_role("button", name="+ New Project").click()
 
-            # Verify the sidebar is now collapsed
-            await expect(page.locator(".sidebar.collapsed")).to_be_visible()
+            # Create a new project
+            project_name = f"Test Project {int(time.time())}"
+            await page.get_by_placeholder("Enter project name").fill(project_name)
+            await page.get_by_role("button", name="Create Project").click()
 
-            # Verify that the text is hidden
+            # Click on the new project link to navigate to the canvas
+            await page.get_by_text(project_name).click()
+
+            # Wait for the canvas to load and verify the sidebar is now collapsed
+            await expect(page.locator(".sidebar.collapsed")).to_be_visible(timeout=10000)
+
+            # Verify that the text is hidden in the collapsed sidebar
             await expect(page.locator(".sidebar.collapsed .text")).not_to_be_visible()
 
-            # Take a screenshot of the collapsed sidebar
+            # Take a screenshot of the collapsed sidebar on the canvas page
             screenshot_path = "jules-scratch/verification/verification.png"
             await page.screenshot(path=screenshot_path)
             print(f"Screenshot saved to {screenshot_path}")
