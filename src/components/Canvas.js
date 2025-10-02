@@ -5,7 +5,9 @@ import { FaFont, FaTrashAlt, FaArrowLeft } from 'react-icons/fa';
 import { ItemTypes } from './ItemTypes';
 import { supabase } from '../supabaseClient';
 import AlignmentGuides from './AlignmentGuides';
+import DistanceLines from './DistanceLines';
 import './Canvas.css';
+import './DistanceLines.css';
 
 const DraggableTool = ({ type, icon, text }) => {
   const [{ isDragging }, drag] = useDrag(() => ({
@@ -80,6 +82,7 @@ const Canvas = () => {
   const [loading, setLoading] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
   const [guides, setGuides] = useState([]);
+  const [distanceLines, setDistanceLines] = useState([]);
 
 
   useEffect(() => {
@@ -141,6 +144,7 @@ const Canvas = () => {
         const dragId = item.id;
         if (!dragId || !item.width || !item.height) {
             setGuides([]);
+            setDistanceLines([]);
             return;
         }
 
@@ -160,7 +164,36 @@ const Canvas = () => {
         };
 
         const newGuides = [];
+        const newDistanceLines = [];
         const GUIDE_THRESHOLD = 6;
+        const DISTANCE_THRESHOLD = 40;
+
+        const canvasRect = canvasRef.current?.getBoundingClientRect();
+
+        if (canvasRect) {
+            const canvasCenterX = canvasRect.width / 2;
+            const canvasCenterY = canvasRect.height / 2;
+
+            // Check for horizontal centering
+            if (Math.abs(draggedItemRect.centerX - canvasCenterX) < GUIDE_THRESHOLD) {
+                newGuides.push({
+                    orientation: 'vertical',
+                    left: canvasCenterX,
+                    top: 0,
+                    height: canvasRect.height,
+                });
+            }
+
+            // Check for vertical centering
+            if (Math.abs(draggedItemRect.centerY - canvasCenterY) < GUIDE_THRESHOLD) {
+                newGuides.push({
+                    orientation: 'horizontal',
+                    top: canvasCenterY,
+                    left: 0,
+                    width: canvasRect.width,
+                });
+            }
+        }
 
         for (const id in droppedItems) {
             if (String(id) === String(dragId)) continue;
@@ -209,11 +242,61 @@ const Canvas = () => {
                     }
                 }
             }
+
+            // Horizontal distance
+            const horizontalDist = draggedItemRect.left - staticItemRect.right;
+            if (horizontalDist > 0 && horizontalDist < DISTANCE_THRESHOLD) {
+                const top = Math.max(staticItemRect.top, draggedItemRect.top) + Math.min(staticItemRect.bottom, draggedItemRect.bottom) / 2;
+                newDistanceLines.push({
+                    orientation: 'horizontal',
+                    left: staticItemRect.right,
+                    top: draggedItemRect.centerY,
+                    length: horizontalDist,
+                    label: { text: `${Math.round(horizontalDist)}px`, left: staticItemRect.right + horizontalDist / 2, top: draggedItemRect.centerY },
+                });
+            }
+
+            const horizontalDist2 = staticItemRect.left - draggedItemRect.right;
+            if (horizontalDist2 > 0 && horizontalDist2 < DISTANCE_THRESHOLD) {
+                newDistanceLines.push({
+                    orientation: 'horizontal',
+                    left: draggedItemRect.right,
+                    top: draggedItemRect.centerY,
+                    length: horizontalDist2,
+                    label: { text: `${Math.round(horizontalDist2)}px`, left: draggedItemRect.right + horizontalDist2 / 2, top: draggedItemRect.centerY },
+                });
+            }
+
+            // Vertical distance (from static bottom to dragged top)
+            const verticalDist = draggedItemRect.top - staticItemRect.bottom;
+            if (verticalDist > 0 && verticalDist < DISTANCE_THRESHOLD) {
+                newDistanceLines.push({
+                    orientation: 'vertical',
+                    top: staticItemRect.bottom,
+                    left: draggedItemRect.centerX,
+                    length: verticalDist,
+                    label: { text: `${Math.round(verticalDist)}px`, left: draggedItemRect.centerX, top: staticItemRect.bottom + verticalDist / 2 },
+                });
+            }
+
+            // Vertical distance (from dragged bottom to static top)
+            const verticalDist2 = staticItemRect.top - draggedItemRect.bottom;
+            if (verticalDist2 > 0 && verticalDist2 < DISTANCE_THRESHOLD) {
+                newDistanceLines.push({
+                    orientation: 'vertical',
+                    top: draggedItemRect.bottom,
+                    left: draggedItemRect.centerX,
+                    length: verticalDist2,
+                    label: { text: `${Math.round(verticalDist2)}px`, left: draggedItemRect.centerX, top: draggedItemRect.bottom + verticalDist2 / 2 },
+                });
+            }
         }
         setGuides(newGuides);
+        setDistanceLines(newDistanceLines);
     },
     drop: (item, monitor) => {
       setGuides([]);
+      setDistanceLines([]);
       const id = item.id;
       if (!id) {
           if (canvasRef.current) {
@@ -321,6 +404,7 @@ const Canvas = () => {
     const handleDragEnd = () => {
         setIsDragging(false);
         setGuides([]);
+        setDistanceLines([]);
     };
     window.addEventListener('dragstart', handleDragStart);
     window.addEventListener('dragend', handleDragEnd);
@@ -349,6 +433,7 @@ const Canvas = () => {
             </div>
             <div ref={node => { canvasRef.current = node; drop(node); }} className="canvas-area">
                 <AlignmentGuides guides={guides} />
+                <DistanceLines lines={distanceLines} />
                 {Object.values(droppedItems).map((item) => (
                   <DraggableDroppedItem key={item.id} {...item} onTextChange={handleTextChange} onResize={handleResize} />
                 ))}

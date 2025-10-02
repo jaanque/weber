@@ -1,0 +1,13 @@
+.alignment-guides .guide {
+  position: absolute;
+  background-color: var(--guide-color);
+  z-index: 9998;
+}
+
+.alignment-guides .guide.vertical {
+  width: 1px;
+}
+
+.alignment-guides .guide.horizontal {
+  height: 1px;
+}
