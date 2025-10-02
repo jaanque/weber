@@ -71,9 +71,9 @@
   flex-grow: 1;
   position: relative;
   overflow: auto;
-  background-color: var(--background-color);
+  background-color: #f7f8fa; /* Lighter gray background */
   background-image:
-    linear-gradient(rgba(0, 0, 0, 0.1) 1px, transparent 1px),
-    linear-gradient(to right, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
-  background-size: 20px 20px;
+    linear-gradient(to right, #e8e8e8 1px, transparent 1px),
+    linear-gradient(to bottom, #e8e8e8 1px, transparent 1px);
+  background-size: 40px 40px; /* Larger grid squares */
 }
