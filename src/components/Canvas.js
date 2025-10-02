@@ -1,7 +1,8 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDrag, useDrop } from 'react-dnd';
 import { ItemTypes } from './ItemTypes';
+import { supabase } from '../supabaseClient';
 import './Canvas.css';
 
 // The draggable tool in the toolbar
@@ -50,6 +51,28 @@ const Canvas = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
   const [droppedItems, setDroppedItems] = useState({});
+  const [projectName, setProjectName] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProject = async () => {
+      const { data, error } = await supabase
+        .from('projects')
+        .select('name')
+        .eq('id', projectId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching project:', error);
+        setProjectName('Project Not Found');
+      } else if (data) {
+        setProjectName(data.name);
+      }
+      setLoading(false);
+    };
+
+    fetchProject();
+  }, [projectId]);
 
   const moveItem = useCallback((id, left, top) => {
     setDroppedItems(prevItems => {
@@ -66,6 +89,7 @@ const Canvas = () => {
     accept: ItemTypes.TEXT,
     drop: (item, monitor) => {
       const id = item.id;
+      // If the item has an ID, it's an existing item being moved.
       if (id) {
           const delta = monitor.getDifferenceFromInitialOffset();
           const left = Math.round(item.left + delta.x);
@@ -74,6 +98,7 @@ const Canvas = () => {
           return undefined;
       }
 
+      // If no ID, it's a new item from the toolbar.
       if (canvasRef.current) {
         const canvasRect = canvasRef.current.getBoundingClientRect();
         const clientOffset = monitor.getClientOffset();
@@ -90,13 +115,17 @@ const Canvas = () => {
     },
   }), [moveItem]);
 
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div className="canvas-container">
         <header className="canvas-header">
             <button onClick={() => navigate('/')} className="back-button">
                 &larr;
             </button>
-            <h1>Project {projectId}</h1>
+            <h1>{projectName}</h1>
         </header>
         <div className="canvas-body">
             <div className="canvas-toolbar">
