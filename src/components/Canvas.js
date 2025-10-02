@@ -27,7 +27,7 @@ const DraggableTool = ({ type, icon }) => {
 };
 
 // The component that has been dropped onto the canvas and can be moved
-const DraggableDroppedItem = ({ id, left, top, text }) => {
+const DraggableDroppedItem = ({ id, left, top, text, onTextChange }) => {
     const [{ isDragging }, drag] = useDrag(() => ({
         type: ItemTypes.TEXT,
         item: { id, left, top, type: ItemTypes.TEXT },
@@ -36,12 +36,22 @@ const DraggableDroppedItem = ({ id, left, top, text }) => {
         }),
     }), [id, left, top]);
 
+    const handleTextChange = (e) => {
+        onTextChange(id, e.target.value);
+    };
+
     return (
         <div
             ref={drag}
-            style={{ position: 'absolute', left, top, cursor: 'move', opacity: isDragging ? 0.5 : 1, padding: '8px', backgroundColor: 'white', border: '1px solid #ccc', borderRadius: '4px' }}
+            style={{ position: 'absolute', left, top, cursor: 'move', opacity: isDragging ? 0.5 : 1 }}
+            className="dropped-item"
         >
-            {text}
+            <textarea
+                value={text}
+                onChange={handleTextChange}
+                className="editable-textarea"
+                spellCheck="false"
+            />
         </div>
     );
 };
@@ -84,6 +94,13 @@ const Canvas = () => {
     });
   }, []);
 
+  const handleTextChange = (id, newText) => {
+    setDroppedItems(prevItems => ({
+      ...prevItems,
+      [id]: { ...prevItems[id], text: newText },
+    }));
+  };
+
   const canvasRef = useRef(null);
   const [, drop] = useDrop(() => ({
     accept: ItemTypes.TEXT,
@@ -108,7 +125,7 @@ const Canvas = () => {
           const newId = Date.now();
           setDroppedItems(prev => ({
               ...prev,
-              [newId]: { id: newId, left, top, text: 'New Text Block' }
+              [newId]: { id: newId, left, top, text: 'Text area' }
           }));
         }
       }
@@ -133,7 +150,7 @@ const Canvas = () => {
             </div>
             <div ref={node => { canvasRef.current = node; drop(node); }} className="canvas-area">
                 {Object.values(droppedItems).map((item) => (
-                <DraggableDroppedItem key={item.id} {...item} />
+                  <DraggableDroppedItem key={item.id} {...item} onTextChange={handleTextChange} />
                 ))}
             </div>
         </div>

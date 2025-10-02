@@ -77,3 +77,36 @@
     linear-gradient(to bottom, #e8e8e8 1px, transparent 1px);
   background-size: 40px 40px; /* Larger grid squares */
 }
+
+.dropped-item {
+  position: absolute;
+  cursor: move;
+  padding: 8px;
+  background-color: transparent;
+  border: 1px dashed transparent;
+  border-radius: 4px;
+}
+
+.dropped-item:hover {
+  border-color: var(--primary-color);
+}
+
+.editable-textarea {
+  width: 100%;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background-color: transparent;
+  resize: none;
+  font-family: var(--font-family);
+  font-size: 16px;
+  color: var(--text-color);
+  overflow: hidden; /* Prevents scrollbars */
+}
+
+.editable-textarea:focus {
+  outline: none;
+  border: 1px dashed var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+}
