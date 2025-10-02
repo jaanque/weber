@@ -1,45 +1,91 @@
 .styling-toolbar {
     position: absolute;
-    background-color: #333;
-    color: white;
-    padding: 8px;
-    border-radius: 6px;
+    background-color: #ffffff;
+    color: #333;
+    padding: 6px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    z-index: 100; /* Ensure it's above canvas items */
-    transform: translateY(-120%); /* Position it above the selected item */
+    gap: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e2e8f0;
+    z-index: 100;
+    transform: translateY(-125%); /* Default position above the item */
 }
 
 .styling-toolbar button {
     background: none;
     border: none;
-    color: white;
+    color: #4a5568;
     cursor: pointer;
     font-size: 16px;
-    padding: 5px;
-    border-radius: 4px;
-    transition: background-color 0.2s;
+    padding: 8px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, color 0.2s;
 }
 
 .styling-toolbar button:hover {
-    background-color: #555;
+    background-color: #f7fafc;
+    color: #2d3748;
 }
 
 .styling-toolbar button.active {
-    background-color: #007bff;
-    color: white;
+    background-color: #edf2f7;
+    color: #2b6cb0;
+}
+
+.toolbar-divider {
+    width: 1px;
+    height: 20px;
+    background-color: #e2e8f0;
+    margin: 0 4px;
+}
+
+.toolbar-select,
+.font-size-input {
+    background-color: #f7fafc;
+    color: #2d3748;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 14px;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+.toolbar-select {
+    cursor: pointer;
 }
 
 .font-size-input {
-    width: 50px;
-    background-color: #555;
-    color: white;
-    border: 1px solid #777;
-    border-radius: 4px;
-    padding: 4px;
+    width: 45px;
     text-align: center;
+    padding-right: 4px; /* Adjust for number input arrows */
+}
+
+.toolbar-color-picker {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    background-color: transparent;
+    border: none;
+    padding: 0;
+}
+
+.toolbar-color-picker::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.toolbar-color-picker::-webkit-color-swatch {
+    border: 1px solid #e2e8f0;
+    border-radius: 50%;
 }
 
 /* Remove arrows from number input */

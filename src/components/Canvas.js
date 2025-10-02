@@ -54,6 +54,7 @@ const Canvas = () => {
   const [distanceLines, setDistanceLines] = useState([]);
   const [selectedItemId, setSelectedItemId] = useState(null);
   const itemsRef = useRef(items);
+  const canvasRef = useRef(null);
 
   // Keep a ref to the latest items state to avoid stale closures in debounced function
   useEffect(() => {
@@ -85,7 +86,7 @@ const Canvas = () => {
       if (error) {
         console.error('Error updating item:', error);
       }
-    }, 1000), // Increased debounce delay
+    }, 1000),
     []
   );
 
@@ -259,7 +260,15 @@ const Canvas = () => {
                   content: 'Text area',
                   width: 150,
                   height: 50,
-                  style: { fontSize: '16px', fontWeight: 'normal', fontStyle: 'normal' }
+                  style: {
+                      fontSize: '16px',
+                      fontWeight: 'normal',
+                      fontStyle: 'normal',
+                      textDecoration: 'none',
+                      fontFamily: 'Arial',
+                      color: '#000000',
+                      textAlign: 'left'
+                  }
               };
 
               setItems(prev => ({ ...prev, [newId]: newItem }));
@@ -289,8 +298,6 @@ const Canvas = () => {
     }),
   }));
 
-  const canvasRef = useRef(null);
-
   useEffect(() => {
     const handleDragStart = () => setIsDragging(true);
     const handleDragEnd = () => {
@@ -308,6 +315,23 @@ const Canvas = () => {
 
   const selectedItem = selectedItemId ? items[selectedItemId] : null;
 
+  const getToolbarStyle = () => {
+      if (!selectedItem || !canvasRef.current) return {};
+
+      const canvasRect = canvasRef.current.getBoundingClientRect();
+      const itemTop = selectedItem.top;
+      const itemLeft = selectedItem.left;
+
+      const top = itemTop - 60; // Default position above the item
+      const left = itemLeft;
+
+      // Flip below if not enough space above
+      if (top < 0) {
+          return { top: itemTop + selectedItem.height + 10, left };
+      }
+      return { top, left };
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -321,17 +345,17 @@ const Canvas = () => {
             <h1>{projectName}</h1>
         </header>
         <div className="canvas-body">
-            <div className="canvas-toolbar">
+            <aside className="canvas-toolbar">
                 <DraggableTool type={ItemTypes.TEXT} icon={<FaFont />} text="Text" />
-            </div>
-            <div
+            </aside>
+            <main
                 ref={node => { canvasRef.current = node; drop(node); }}
                 className="canvas-area"
                 onClick={handleCanvasClick}
                 data-testid="canvas-area"
             >
                 {selectedItem && (
-                    <div style={{ position: 'absolute', left: selectedItem.left, top: selectedItem.top }}>
+                    <div style={{...getToolbarStyle(), position: 'absolute', zIndex: 101}}>
                         <StylingToolbar
                             selectedItem={selectedItem}
                             onStyleChange={handleStyleChange}
@@ -350,7 +374,7 @@ const Canvas = () => {
                     isSelected={selectedItemId === item.id}
                   />
                 ))}
-            </div>
+            </main>
         </div>
         {isDragging && (
           <div ref={trashDrop} className={`trash-area ${isTrashOver ? 'hovered' : ''}`}>

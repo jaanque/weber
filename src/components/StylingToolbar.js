@@ -1,6 +1,15 @@
 import React from 'react';
 import './StylingToolbar.css';
-import { FaBold, FaItalic } from 'react-icons/fa';
+import {
+    FaBold,
+    FaItalic,
+    FaUnderline,
+    FaAlignLeft,
+    FaAlignCenter,
+    FaAlignRight
+} from 'react-icons/fa';
+
+const FONT_FACES = ['Arial', 'Georgia', 'Helvetica', 'Times New Roman', 'Verdana'];
 
 const StylingToolbar = ({ selectedItem, onStyleChange }) => {
     if (!selectedItem) {
@@ -9,46 +18,96 @@ const StylingToolbar = ({ selectedItem, onStyleChange }) => {
 
     const { style = {} } = selectedItem;
 
-    const handleBoldClick = () => {
-        onStyleChange({ ...style, fontWeight: style.fontWeight === 'bold' ? 'normal' : 'bold' });
+    const handleStyleToggle = (property, activeValue, defaultValue = 'normal') => {
+        onStyleChange({ ...style, [property]: style[property] === activeValue ? defaultValue : activeValue });
     };
 
-    const handleItalicClick = () => {
-        onStyleChange({ ...style, fontStyle: style.fontStyle === 'italic' ? 'normal' : 'italic' });
+    const handleStyleValueChange = (property, value) => {
+        onStyleChange({ ...style, [property]: value });
     };
 
-    const handleFontSizeChange = (e) => {
-        const newSize = e.target.value;
-        onStyleChange({ ...style, fontSize: `${newSize}px` });
-    };
-
-    // Extract numeric value from fontSize string (e.g., "16px")
     const currentFontSize = style.fontSize ? parseInt(style.fontSize.replace('px', '')) : 16;
 
-    // The toolbar will be positioned relative to the canvas based on the selected item's position.
-    // For now, we'll just define the component and its functions. Positioning will be handled in Canvas.js.
     return (
         <div className="styling-toolbar">
+            {/* Font Style Buttons */}
             <button
-                onClick={handleBoldClick}
+                onClick={() => handleStyleToggle('fontWeight', 'bold')}
                 className={style.fontWeight === 'bold' ? 'active' : ''}
+                title="Bold"
             >
                 <FaBold />
             </button>
             <button
-                onClick={handleItalicClick}
+                onClick={() => handleStyleToggle('fontStyle', 'italic')}
                 className={style.fontStyle === 'italic' ? 'active' : ''}
+                title="Italic"
             >
                 <FaItalic />
             </button>
+            <button
+                onClick={() => handleStyleToggle('textDecoration', 'underline', 'none')}
+                className={style.textDecoration === 'underline' ? 'active' : ''}
+                title="Underline"
+            >
+                <FaUnderline />
+            </button>
+
+            <div className="toolbar-divider"></div>
+
+            {/* Font Family Selector */}
+            <select
+                value={style.fontFamily || 'Arial'}
+                onChange={(e) => handleStyleValueChange('fontFamily', e.target.value)}
+                className="toolbar-select"
+            >
+                {FONT_FACES.map(font => <option key={font} value={font}>{font}</option>)}
+            </select>
+
+            {/* Font Size Input */}
             <input
                 type="number"
                 value={currentFontSize}
-                onChange={handleFontSizeChange}
+                onChange={(e) => handleStyleValueChange('fontSize', `${e.target.value}px`)}
                 className="font-size-input"
                 min="8"
                 max="120"
+                title="Font size"
             />
+
+            {/* Color Picker */}
+            <input
+              type="color"
+              value={style.color || '#000000'}
+              onChange={(e) => handleStyleValueChange('color', e.target.value)}
+              className="toolbar-color-picker"
+              title="Text color"
+            />
+
+            <div className="toolbar-divider"></div>
+
+            {/* Text Align Buttons */}
+            <button
+                onClick={() => handleStyleValueChange('textAlign', 'left')}
+                className={style.textAlign === 'left' ? 'active' : ''}
+                title="Align left"
+            >
+                <FaAlignLeft />
+            </button>
+            <button
+                onClick={() => handleStyleValueChange('textAlign', 'center')}
+                className={style.textAlign === 'center' ? 'active' : ''}
+                title="Align center"
+            >
+                <FaAlignCenter />
+            </button>
+            <button
+                onClick={() => handleStyleValueChange('textAlign', 'right')}
+                className={style.textAlign === 'right' ? 'active' : ''}
+                title="Align right"
+            >
+                <FaAlignRight />
+            </button>
         </div>
     );
 };

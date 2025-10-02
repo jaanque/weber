@@ -11,14 +11,10 @@ const TextBox = ({ id, left, top, width, height, content, style = {}, onTextChan
     useLayoutEffect(() => {
         const textarea = textareaRef.current;
         if (textarea) {
-            // Temporarily reset height to calculate the new scrollHeight
             textarea.style.height = 'auto';
             const newHeight = textarea.scrollHeight;
-
-            // Set the new height on the textarea itself to make the parent div grow
             textarea.style.height = `${newHeight}px`;
 
-            // Notify parent if the container's height needs to be updated
             if (height !== newHeight) {
                 onResize(id, width, newHeight);
             }
@@ -39,6 +35,9 @@ const TextBox = ({ id, left, top, width, height, content, style = {}, onTextChan
 
     const handleDoubleClick = () => {
         setIsEditing(true);
+        // Focus and select text for immediate editing
+        textareaRef.current?.focus();
+        textareaRef.current?.select();
     };
 
     const handleBlur = () => {
@@ -55,7 +54,8 @@ const TextBox = ({ id, left, top, width, height, content, style = {}, onTextChan
         itemRef.current = node;
     };
 
-    const boxStyle = {
+    // Separate container and text styles
+    const containerStyle = {
         position: 'absolute',
         left,
         top,
@@ -65,13 +65,34 @@ const TextBox = ({ id, left, top, width, height, content, style = {}, onTextChan
         opacity: isDragging ? 0.5 : 1,
         border: isSelected ? '2px solid #3b82f6' : '2px solid transparent',
         boxSizing: 'border-box',
-        ...style,
+        transition: 'border-color 0.2s',
+    };
+
+    const textStyle = {
+        width: '100%',
+        height: '100%',
+        border: 'none',
+        padding: '8px',
+        margin: '0',
+        background: 'transparent',
+        resize: 'none',
+        outline: 'none',
+        boxSizing: 'border-box',
+        overflow: 'hidden',
+        // Apply text-specific styles from the style prop
+        color: style.color || '#000000',
+        fontFamily: style.fontFamily || 'Arial',
+        fontSize: style.fontSize || '16px',
+        fontWeight: style.fontWeight || 'normal',
+        fontStyle: style.fontStyle || 'normal',
+        textDecoration: style.textDecoration || 'none',
+        textAlign: style.textAlign || 'left',
     };
 
     return (
         <div
             ref={combinedRef}
-            style={boxStyle}
+            style={containerStyle}
             className="dropped-item"
             onClick={handleClick}
             onDoubleClick={handleDoubleClick}
@@ -82,23 +103,7 @@ const TextBox = ({ id, left, top, width, height, content, style = {}, onTextChan
                 onChange={handleTextChange}
                 onBlur={handleBlur}
                 className="editable-textarea"
-                style={{
-                    width: '100%',
-                    height: '100%',
-                    border: 'none',
-                    padding: '8px',
-                    margin: '0',
-                    background: 'transparent',
-                    resize: 'none',
-                    outline: 'none',
-                    color: 'inherit',
-                    fontFamily: 'inherit',
-                    fontSize: 'inherit',
-                    fontWeight: 'inherit',
-                    fontStyle: 'inherit',
-                    boxSizing: 'border-box',
-                    overflow: 'hidden',
-                }}
+                style={textStyle}
                 spellCheck="false"
                 readOnly={!isEditing}
             />
