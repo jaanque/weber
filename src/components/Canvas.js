@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDrag, useDrop } from 'react-dnd';
-import { FaFont, FaArrowLeft } from 'react-icons/fa';
+import { FaFont, FaTrashAlt, FaArrowLeft } from 'react-icons/fa';
 import { ItemTypes } from './ItemTypes';
 import { supabase } from '../supabaseClient';
 import './Canvas.css';
@@ -63,9 +63,12 @@ const Canvas = () => {
   const [droppedItems, setDroppedItems] = useState({});
   const [projectName, setProjectName] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
+
 
   useEffect(() => {
     const fetchProject = async () => {
+      setLoading(true);
       const { data, error } = await supabase
         .from('projects')
         .select('name')
@@ -132,6 +135,29 @@ const Canvas = () => {
     },
   }), [moveItem]);
 
+  const [, trashDrop] = useDrop(() => ({
+    accept: ItemTypes.TEXT,
+    drop: (item) => {
+      setDroppedItems(prev => {
+        const newItems = { ...prev };
+        delete newItems[item.id];
+        return newItems;
+      });
+    },
+  }));
+
+  useEffect(() => {
+    const handleDragStart = () => setIsDragging(true);
+    const handleDragEnd = () => setIsDragging(false);
+    window.addEventListener('dragstart', handleDragStart);
+    window.addEventListener('dragend', handleDragEnd);
+    return () => {
+      window.removeEventListener('dragstart', handleDragStart);
+      window.removeEventListener('dragend', handleDragEnd);
+    };
+  }, []);
+
+
   if (loading) {
     return <div>Loading...</div>;
   }
@@ -154,6 +180,11 @@ const Canvas = () => {
                 ))}
             </div>
         </div>
+        {isDragging && (
+          <div ref={trashDrop} className="trash-area">
+            <FaTrashAlt size={32} />
+          </div>
+        )}
     </div>
   );
 };
