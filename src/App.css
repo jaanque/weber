@@ -13,6 +13,12 @@ body {
   margin-left: 240px; /* Same as sidebar width */
   padding: 20px;
   width: calc(100% - 240px);
+  transition: margin-left 0.2s ease-in-out, width 0.2s ease-in-out;
+}
+
+.app-layout.sidebar-collapsed .main-content {
+  margin-left: 80px;
+  width: calc(100% - 80px);
 }
 
 .container {

@@ -47,7 +47,7 @@ const DraggableDroppedItem = ({ id, left, top, text }) => {
 
 
 const Canvas = () => {
-  const { projectId } = useParams();
+  useParams();
   const [droppedItems, setDroppedItems] = useState({});
 
   const moveItem = useCallback((id, left, top) => {

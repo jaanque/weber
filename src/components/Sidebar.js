@@ -3,29 +3,37 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import './Sidebar.css';
 
-const Sidebar = ({ onNewProjectClick }) => {
+const Sidebar = ({ onNewProjectClick, isCollapsed, toggleSidebar }) => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
 
   return (
-    <div className="sidebar">
+    <div className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       <div className="sidebar-header">
-        <h2>WebAR</h2>
+        <h2>{isCollapsed ? 'W' : 'WebAR'}</h2>
+        <button onClick={toggleSidebar} className="toggle-button">
+          {isCollapsed ? '→' : '←'}
+        </button>
       </div>
       <nav className="sidebar-nav">
         <button onClick={onNewProjectClick} className="new-project-button">
-          + New Project
+          <span className="icon">+</span>
+          {!isCollapsed && <span className="text">New Project</span>}
         </button>
         <ul>
           <li>
-            <Link to="/">Projects</Link>
+            <Link to="/">
+              <span className="icon">📄</span>
+              {!isCollapsed && <span className="text">Projects</span>}
+            </Link>
           </li>
         </ul>
       </nav>
       <div className="sidebar-footer">
         <button onClick={handleLogout} className="logout-button">
-          Logout
+          <span className="icon">🚪</span>
+          {!isCollapsed && <span className="text">Logout</span>}
         </button>
       </div>
     </div>

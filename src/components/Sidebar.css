@@ -8,17 +8,36 @@
   position: fixed;
   top: 0;
   left: 0;
+  transition: width 0.2s ease-in-out;
+}
+
+.sidebar.collapsed {
+  width: 80px;
 }
 
 .sidebar-header {
   padding: 20px;
   border-bottom: 1px solid #dee2e6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .sidebar-header h2 {
   margin: 0;
   font-size: 24px;
   color: #343a40;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.toggle-button {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #888;
+  padding: 5px;
 }
 
 .sidebar-nav {
@@ -26,8 +45,36 @@
   padding: 20px 10px;
 }
 
-.new-project-button {
+.new-project-button,
+.logout-button,
+.sidebar-nav li a {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
   width: 100%;
+  text-decoration: none;
+  box-sizing: border-box;
+}
+
+.sidebar.collapsed .new-project-button,
+.sidebar.collapsed .logout-button,
+.sidebar.collapsed .sidebar-nav li a {
+  justify-content: center;
+}
+
+.new-project-button .text,
+.logout-button .text,
+.sidebar-nav li a .text {
+  margin-left: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.sidebar.collapsed .text {
+  display: none;
+}
+
+.new-project-button {
   padding: 12px 20px;
   margin-bottom: 20px;
   background-color: #ffffff;
@@ -37,7 +84,6 @@
   cursor: pointer;
   font-size: 16px;
   font-weight: bold;
-  text-align: center;
   transition: background-color 0.2s, color 0.2s;
 }
 
@@ -53,13 +99,10 @@
 }
 
 .sidebar-nav li a {
-  display: block;
   padding: 10px 20px;
-  text-decoration: none;
   color: #495057;
   font-size: 16px;
   border-radius: 4px;
-  margin: 0 10px;
 }
 
 .sidebar-nav li a:hover {
@@ -73,7 +116,6 @@
 }
 
 .logout-button {
-  width: 100%;
   padding: 10px;
   background-color: #007bff;
   color: white;

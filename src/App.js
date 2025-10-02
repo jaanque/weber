@@ -15,6 +15,7 @@ const AuthenticatedLayout = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [projects, setProjects] = useState([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -43,9 +44,17 @@ const AuthenticatedLayout = () => {
     setProjects((currentProjects) => [newProject, ...currentProjects]);
   };
 
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed(!isSidebarCollapsed);
+  };
+
   return (
-    <div className="app-layout">
-      <Sidebar onNewProjectClick={() => setIsModalOpen(true)} />
+    <div className={`app-layout ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      <Sidebar
+        onNewProjectClick={() => setIsModalOpen(true)}
+        isCollapsed={isSidebarCollapsed}
+        toggleSidebar={toggleSidebar}
+      />
       <main className="main-content">
         <Outlet context={{ projects, setProjects, loadingProjects }} />
       </main>
