@@ -29,42 +29,27 @@ async def main():
             # Click the login button
             await page.get_by_role("button", name="Login").click()
 
-            # Verify the sidebar is visible
-            await expect(page.locator(".sidebar")).to_be_visible(timeout=15000)
-
             # Click the "+ New Project" button to open the modal
             await page.get_by_role("button", name="+ New Project").click()
-
-            # Verify the modal is visible
-            await expect(page.get_by_role("heading", name="New Project")).to_be_visible()
 
             # Create a new project
             project_name = f"Test Project {int(time.time())}"
             await page.get_by_placeholder("Enter project name").fill(project_name)
             await page.get_by_role("button", name="Create Project").click()
 
-            # Verify the modal is closed and wait for the new project to appear in the list
-            await expect(page.get_by_role("heading", name="New Project")).not_to_be_visible()
+            # Click on the new project link to navigate to the canvas
             new_project_link = page.locator(f'.project-item-link:has-text("{project_name}")')
             await expect(new_project_link).to_be_visible(timeout=10000)
-
-            # Click on the new project link
             await new_project_link.click()
 
-            # Wait for the canvas to load
-            await expect(page.get_by_role("heading", name="Tools")).to_be_visible()
+            # Wait for the canvas to load and verify the main sidebar is gone
+            await expect(page.locator(".app-layout.canvas-mode")).to_be_visible(timeout=10000)
+            await expect(page.locator(".sidebar")).not_to_be_visible()
 
-            # Define the source and target for drag-and-drop
-            source = page.locator(".tool-item")
-            target = page.locator(".canvas-area")
+            # Verify the canvas toolbar is visible
+            await expect(page.locator(".canvas-toolbar")).to_be_visible()
 
-            # Perform the drag-and-drop operation
-            await source.drag_to(target, target_position={"x": 150, "y": 150})
-
-            # Verify that the dropped item is now on the canvas
-            await expect(page.get_by_text("New Text Block")).to_be_visible()
-
-            # Take a screenshot of the canvas with the dropped item
+            # Take a screenshot of the full-screen canvas
             screenshot_path = "jules-scratch/verification/verification.png"
             await page.screenshot(path=screenshot_path)
             print(f"Screenshot saved to {screenshot_path}")

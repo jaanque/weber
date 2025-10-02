@@ -17,14 +17,7 @@ const AuthenticatedLayout = () => {
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const location = useLocation();
-
-  useEffect(() => {
-    if (location.pathname.startsWith('/projects/')) {
-      setIsSidebarCollapsed(true);
-    } else {
-      setIsSidebarCollapsed(false);
-    }
-  }, [location.pathname]);
+  const isCanvasView = location.pathname.startsWith('/projects/');
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -46,8 +39,12 @@ const AuthenticatedLayout = () => {
       setLoadingProjects(false);
     };
 
-    fetchProjects();
-  }, []);
+    if (!isCanvasView) {
+      fetchProjects();
+    } else {
+      setLoadingProjects(false);
+    }
+  }, [isCanvasView]);
 
   const handleProjectAdded = (newProject) => {
     setProjects((currentProjects) => [newProject, ...currentProjects]);
@@ -58,20 +55,24 @@ const AuthenticatedLayout = () => {
   };
 
   return (
-    <div className={`app-layout ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-      <Sidebar
-        onNewProjectClick={() => setIsModalOpen(true)}
-        isCollapsed={isSidebarCollapsed}
-        toggleSidebar={toggleSidebar}
-      />
+    <div className={`app-layout ${isCanvasView ? 'canvas-mode' : ''} ${!isCanvasView && isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      {!isCanvasView && (
+        <Sidebar
+          onNewProjectClick={() => setIsModalOpen(true)}
+          isCollapsed={isSidebarCollapsed}
+          toggleSidebar={toggleSidebar}
+        />
+      )}
       <main className="main-content">
         <Outlet context={{ projects, setProjects, loadingProjects }} />
       </main>
-      <NewProjectModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onProjectAdded={handleProjectAdded}
-      />
+      {!isCanvasView && (
+        <NewProjectModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onProjectAdded={handleProjectAdded}
+        />
+      )}
     </div>
   );
 };

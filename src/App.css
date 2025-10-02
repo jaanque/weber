@@ -35,6 +35,12 @@ body {
   width: calc(100% - 80px);
 }
 
+.app-layout.canvas-mode .main-content {
+  margin-left: 0;
+  padding: 0;
+  width: 100%;
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
   color: var(--text-color);

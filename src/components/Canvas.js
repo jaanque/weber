@@ -5,10 +5,10 @@ import { ItemTypes } from './ItemTypes';
 import './Canvas.css';
 
 // The draggable tool in the toolbar
-const DraggableTool = () => {
+const DraggableTool = ({ type, icon }) => {
   const [{ isDragging }, drag] = useDrag(() => ({
-    type: ItemTypes.TEXT,
-    item: { type: ItemTypes.TEXT },
+    type: type,
+    item: { type: type },
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
@@ -20,7 +20,7 @@ const DraggableTool = () => {
       className="tool-item"
       style={{ opacity: isDragging ? 0.5 : 1 }}
     >
-      Text
+      {icon}
     </div>
   );
 };
@@ -66,7 +66,6 @@ const Canvas = () => {
     accept: ItemTypes.TEXT,
     drop: (item, monitor) => {
       const id = item.id;
-      // If the item has an ID, it's an existing item being moved.
       if (id) {
           const delta = monitor.getDifferenceFromInitialOffset();
           const left = Math.round(item.left + delta.x);
@@ -75,7 +74,6 @@ const Canvas = () => {
           return undefined;
       }
 
-      // If no ID, it's a new item from the toolbar.
       if (canvasRef.current) {
         const canvasRect = canvasRef.current.getBoundingClientRect();
         const clientOffset = monitor.getClientOffset();
@@ -93,19 +91,23 @@ const Canvas = () => {
   }), [moveItem]);
 
   return (
-    <div className="canvas-view">
-      <div className="toolbar">
-        <h3>Tools</h3>
-        <DraggableTool />
-        <button onClick={() => navigate('/')} className="close-project-button">
-          Close Project
-        </button>
-      </div>
-      <div ref={node => { canvasRef.current = node; drop(node); }} className="canvas-area">
-        {Object.values(droppedItems).map((item) => (
-          <DraggableDroppedItem key={item.id} {...item} />
-        ))}
-      </div>
+    <div className="canvas-container">
+        <header className="canvas-header">
+            <button onClick={() => navigate('/')} className="back-button">
+                &larr;
+            </button>
+            <h1>Project {projectId}</h1>
+        </header>
+        <div className="canvas-body">
+            <div className="canvas-toolbar">
+                <DraggableTool type={ItemTypes.TEXT} icon="T" />
+            </div>
+            <div ref={node => { canvasRef.current = node; drop(node); }} className="canvas-area">
+                {Object.values(droppedItems).map((item) => (
+                <DraggableDroppedItem key={item.id} {...item} />
+                ))}
+            </div>
+        </div>
     </div>
   );
 };
