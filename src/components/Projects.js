@@ -55,23 +55,25 @@ const Projects = () => {
 
   return (
     <div className="projects-container">
-      <h2>Your Projects</h2>
+      <div className="projects-header">
+        <h2>Your Projects</h2>
+      </div>
       <form onSubmit={handleAddProject} className="add-project-form">
         <input
           type="text"
-          placeholder="New project name"
+          placeholder="Start a new project"
           value={projectName}
           onChange={(e) => setProjectName(e.target.value)}
         />
-        <button type="submit">Add Project</button>
+        <button type="submit">New Project</button>
       </form>
-      <ul className="project-list">
+      <div className="project-list">
         {projects.map((project) => (
-          <li key={project.id} className="project-item">
+          <div key={project.id} className="project-item">
             {project.name}
-          </li>
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 };
