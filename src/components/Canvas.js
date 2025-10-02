@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useDrag, useDrop } from 'react-dnd';
 import { ItemTypes } from './ItemTypes';
 import './Canvas.css';
@@ -47,7 +47,8 @@ const DraggableDroppedItem = ({ id, left, top, text }) => {
 
 
 const Canvas = () => {
-  useParams();
+  const { projectId } = useParams();
+  const navigate = useNavigate();
   const [droppedItems, setDroppedItems] = useState({});
 
   const moveItem = useCallback((id, left, top) => {
@@ -96,6 +97,9 @@ const Canvas = () => {
       <div className="toolbar">
         <h3>Tools</h3>
         <DraggableTool />
+        <button onClick={() => navigate('/')} className="close-project-button">
+          Close Project
+        </button>
       </div>
       <div ref={node => { canvasRef.current = node; drop(node); }} className="canvas-area">
         {Object.values(droppedItems).map((item) => (
