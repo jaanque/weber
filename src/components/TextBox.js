@@ -2,7 +2,7 @@ import React, { useRef, useState, useLayoutEffect } from 'react';
 import { useDrag } from 'react-dnd';
 import { ItemTypes } from './ItemTypes';
 
-const TextBox = ({ id, left, top, width, height, text, style = {}, onTextChange, onResize, onSelect, isSelected }) => {
+const TextBox = ({ id, left, top, width, height, content, style = {}, onTextChange, onResize, onSelect, isSelected }) => {
     const itemRef = useRef(null);
     const textareaRef = useRef(null);
     const [isEditing, setIsEditing] = useState(false);
@@ -23,7 +23,7 @@ const TextBox = ({ id, left, top, width, height, text, style = {}, onTextChange,
                 onResize(id, width, newHeight);
             }
         }
-    }, [text, width, id, height, onResize]);
+    }, [content, width, id, height, onResize]);
 
     const [{ isDragging }, drag] = useDrag(() => ({
         type: ItemTypes.TEXT,
@@ -78,7 +78,7 @@ const TextBox = ({ id, left, top, width, height, text, style = {}, onTextChange,
         >
             <textarea
                 ref={textareaRef}
-                value={text}
+                value={content || ''}
                 onChange={handleTextChange}
                 onBlur={handleBlur}
                 className="editable-textarea"
