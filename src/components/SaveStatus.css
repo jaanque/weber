@@ -2,8 +2,8 @@
   position: absolute;
   top: 20px;
   right: 20px;
-  background-color: rgba(0, 0, 0, 0.7);
-  color: white;
+  background-color: transparent;
+  color: #a0aec0; /* Gray-400 for a subtle look */
   padding: 8px 12px;
   border-radius: 4px;
   font-size: 14px;

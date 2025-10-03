@@ -1,33 +1,22 @@
-import React, { useRef, useState, useLayoutEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import { useDrag } from 'react-dnd';
+import { ResizableBox } from 're-resizable';
 import { ItemTypes } from './ItemTypes';
+import 're-resizable/css/styles.css';
 
 const TextBox = ({ id, left, top, width, height, content, style = {}, onTextChange, onResize, onSelect, isSelected }) => {
-    const itemRef = useRef(null);
     const textareaRef = useRef(null);
     const [isEditing, setIsEditing] = useState(false);
-
-    // Auto-resize height based on content
-    useLayoutEffect(() => {
-        const textarea = textareaRef.current;
-        if (textarea) {
-            textarea.style.height = 'auto';
-            const newHeight = textarea.scrollHeight;
-            textarea.style.height = `${newHeight}px`;
-
-            if (height !== newHeight) {
-                onResize(id, width, newHeight);
-            }
-        }
-    }, [content, width, id, height, onResize]);
+    const [isResizing, setIsResizing] = useState(false);
 
     const [{ isDragging }, drag] = useDrag(() => ({
         type: ItemTypes.TEXT,
         item: { id, left, top, type: ItemTypes.TEXT, width, height },
+        canDrag: !isEditing && !isResizing,
         collect: (monitor) => ({
             isDragging: monitor.isDragging(),
         }),
-    }), [id, left, top, width, height]);
+    }), [id, left, top, width, height, isEditing, isResizing]);
 
     const handleTextChange = (e) => {
         onTextChange(id, e.target.value);
@@ -35,7 +24,6 @@ const TextBox = ({ id, left, top, width, height, content, style = {}, onTextChan
 
     const handleDoubleClick = () => {
         setIsEditing(true);
-        // Focus and select text for immediate editing
         textareaRef.current?.focus();
         textareaRef.current?.select();
     };
@@ -47,22 +35,27 @@ const TextBox = ({ id, left, top, width, height, content, style = {}, onTextChan
     const handleClick = (e) => {
         e.stopPropagation();
         onSelect(id);
-    }
-
-    const combinedRef = (node) => {
-        drag(node);
-        itemRef.current = node;
     };
 
-    // Separate container and text styles
+    const handleResizeStart = (e) => {
+        e.stopPropagation();
+        setIsResizing(true);
+    };
+
+    const handleResizeStop = (e, direction, ref, d) => {
+        setIsResizing(false);
+        onResize(id, width + d.width, height + d.height);
+    };
+
     const containerStyle = {
         position: 'absolute',
         left,
         top,
-        width,
-        height,
-        cursor: isEditing ? 'text' : 'move',
-        opacity: isDragging ? 0.5 : 1,
+        zIndex: isSelected ? 1 : 'auto',
+        opacity: isDragging ? 0.4 : 1,
+    };
+
+    const resizableStyle = {
         border: isSelected ? '2px solid #3b82f6' : '2px solid transparent',
         boxSizing: 'border-box',
         transition: 'border-color 0.2s',
@@ -79,7 +72,7 @@ const TextBox = ({ id, left, top, width, height, content, style = {}, onTextChan
         outline: 'none',
         boxSizing: 'border-box',
         overflow: 'hidden',
-        // Apply text-specific styles from the style prop
+        cursor: isEditing ? 'text' : (isResizing ? 'auto' : 'move'),
         color: style.color || '#000000',
         fontFamily: style.fontFamily || 'Arial',
         fontSize: style.fontSize || '16px',
@@ -90,23 +83,40 @@ const TextBox = ({ id, left, top, width, height, content, style = {}, onTextChan
     };
 
     return (
-        <div
-            ref={combinedRef}
-            style={containerStyle}
-            className="dropped-item"
-            onClick={handleClick}
-            onDoubleClick={handleDoubleClick}
-        >
-            <textarea
-                ref={textareaRef}
-                value={content || ''}
-                onChange={handleTextChange}
-                onBlur={handleBlur}
-                className="editable-textarea"
-                style={textStyle}
-                spellCheck="false"
-                readOnly={!isEditing}
-            />
+        <div ref={drag} style={containerStyle}>
+            <ResizableBox
+                style={resizableStyle}
+                width={width}
+                height={height}
+                onResizeStart={handleResizeStart}
+                onResizeStop={handleResizeStop}
+                minConstraints={[100, 50]}
+                maxConstraints={[800, 600]}
+                handle={
+                    isSelected && !isEditing ? (
+                        <span className="react-resizable-handle" />
+                    ) : null
+                }
+                handleSize={[8, 8]}
+            >
+                <div
+                    className="dropped-item"
+                    onClick={handleClick}
+                    onDoubleClick={handleDoubleClick}
+                    style={{ width: '100%', height: '100%'}}
+                >
+                    <textarea
+                        ref={textareaRef}
+                        value={content || ''}
+                        onChange={handleTextChange}
+                        onBlur={handleBlur}
+                        className="editable-textarea"
+                        style={textStyle}
+                        spellCheck="false"
+                        readOnly={!isEditing}
+                    />
+                </div>
+            </ResizableBox>
         </div>
     );
 };

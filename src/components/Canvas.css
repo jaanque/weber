@@ -113,7 +113,7 @@
 .trash-area.hovered {
     background-color: rgba(239, 68, 68, 0.8);
     color: #ffffff;
-    transform: translateX(-50%) scale(1.05);
+    transform: translateX(-50%) scale(0.95);
 }
 
 /* Styles for dropped items are now in TextBox.js */
