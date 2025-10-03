@@ -1,8 +1,8 @@
 import React, { useRef, useState } from 'react';
 import { useDrag } from 'react-dnd';
-import { ResizableBox } from 're-resizable';
+import { Resizable } from 're-resizable';
 import { ItemTypes } from './ItemTypes';
-import 're-resizable/css/styles.css';
+import './TextBox.css';
 
 const TextBox = ({ id, left, top, width, height, content, style = {}, onTextChange, onResize, onSelect, isSelected }) => {
     const textareaRef = useRef(null);
@@ -84,20 +84,25 @@ const TextBox = ({ id, left, top, width, height, content, style = {}, onTextChan
 
     return (
         <div ref={drag} style={containerStyle}>
-            <ResizableBox
+            <Resizable
                 style={resizableStyle}
-                width={width}
-                height={height}
+                size={{ width, height }}
                 onResizeStart={handleResizeStart}
                 onResizeStop={handleResizeStop}
                 minConstraints={[100, 50]}
                 maxConstraints={[800, 600]}
-                handle={
-                    isSelected && !isEditing ? (
-                        <span className="react-resizable-handle" />
-                    ) : null
+                handleComponent={
+                    isSelected && !isEditing ? {
+                        top: <div className="resizable-handle resizable-handle-top" />,
+                        right: <div className="resizable-handle resizable-handle-right" />,
+                        bottom: <div className="resizable-handle resizable-handle-bottom" />,
+                        left: <div className="resizable-handle resizable-handle-left" />,
+                        topRight: <div className="resizable-handle resizable-handle-topRight" />,
+                        bottomRight: <div className="resizable-handle resizable-handle-bottomRight" />,
+                        bottomLeft: <div className="resizable-handle resizable-handle-bottomLeft" />,
+                        topLeft: <div className="resizable-handle resizable-handle-topLeft" />,
+                    } : {}
                 }
-                handleSize={[8, 8]}
             >
                 <div
                     className="dropped-item"
@@ -116,7 +121,7 @@ const TextBox = ({ id, left, top, width, height, content, style = {}, onTextChan
                         readOnly={!isEditing}
                     />
                 </div>
-            </ResizableBox>
+            </Resizable>
         </div>
     );
 };
