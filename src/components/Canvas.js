@@ -97,17 +97,17 @@ const Canvas = () => {
     []
   );
 
-  const createItem = async (item) => {
+  const createItem = useCallback(async (item) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { id, left, top, ...rest } = item;
+    const { id: tempId, left, top, ...rest } = item;
     const insertData = {
-        ...rest,
-        project_id: projectId,
-        user_id: user.id,
-        left_pos: left,
-        top_pos: top
+      ...rest,
+      project_id: projectId,
+      user_id: user.id,
+      left_pos: left,
+      top_pos: top,
     };
 
     const { data, error } = await supabase
@@ -118,22 +118,25 @@ const Canvas = () => {
 
     if (error) {
       console.error('Error creating item:', error);
-      setItems(prev => {
-          const newItems = {...prev};
-          delete newItems[item.id];
-          return newItems;
+      // Remove the temporary item if creation fails
+      setItems((prev) => {
+        const newItems = { ...prev };
+        delete newItems[tempId];
+        return newItems;
       });
       return;
     }
 
-    setItems(prev => {
-        const newItems = {...prev};
-        delete newItems[item.id];
-        const dbItem = { ...data, left: data.left_pos, top: data.top_pos };
-        newItems[data.id] = dbItem;
-        return newItems;
+    // Replace temporary item with the one from the database
+    setItems((prev) => {
+      const newItems = { ...prev };
+      delete newItems[tempId];
+      const dbItem = { ...data, left: data.left_pos, top: data.top_pos };
+      newItems[data.id] = dbItem;
+      return newItems;
     });
-  };
+    setLastSaved(new Date());
+  }, [projectId]);
 
   const deleteItem = async (id) => {
     const { error } = await supabase
@@ -360,33 +363,34 @@ const Canvas = () => {
         finalTop = Math.round(canvasCenterY - height / 2);
       }
 
-      if (item.id) {
+      // Do not move item if it's a new one, as it will be handled by createItem
+      if (item.id && !String(item.id).startsWith('temp-')) {
         moveItem(item.id, finalLeft, finalTop);
-      } else {
+      } else if (!item.id) {
         const newId = `temp-${Date.now()}`;
         const newItem = {
-            id: newId,
-            left: finalLeft,
-            top: finalTop,
-            content: 'Text area',
-            width: item.width,
-            height: item.height,
-            rotation: 0,
-            style: {
-                fontSize: '16px',
-                fontWeight: 'normal',
-                fontStyle: 'normal',
-                textDecoration: 'none',
-                fontFamily: 'Arial',
-                color: '#000000',
-                textAlign: 'left'
-            }
+          id: newId,
+          left: finalLeft,
+          top: finalTop,
+          content: 'Text area',
+          width: item.width,
+          height: item.height,
+          rotation: 0,
+          style: {
+            fontSize: '16px',
+            fontWeight: 'normal',
+            fontStyle: 'normal',
+            textDecoration: 'none',
+            fontFamily: 'Arial',
+            color: '#000000',
+            textAlign: 'left',
+          },
         };
-        setItems(prev => ({ ...prev, [newId]: newItem }));
+        setItems((prev) => ({ ...prev, [newId]: newItem }));
         createItem(newItem);
       }
     },
-  }), [moveItem]);
+  }), [moveItem, createItem]);
 
   const [{ isOver: isTrashOver }, trashDrop] = useDrop(() => ({
     accept: ItemTypes.TEXT,
