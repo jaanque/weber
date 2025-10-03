@@ -9,6 +9,7 @@ import DistanceLines from './DistanceLines';
 import TextBox from './TextBox';
 import StylingToolbar from './StylingToolbar';
 import SaveStatus from './SaveStatus';
+import CustomDragLayer from './CustomDragLayer';
 import './Canvas.css';
 import './DistanceLines.css';
 import './StylingToolbar.css';
@@ -209,13 +210,22 @@ const Canvas = () => {
     saveItem(id);
   };
 
-  const handleResize = useCallback((id, width, height) => {
+  const handleResize = useCallback((id, width, height, newStyle) => {
     setItems(prevItems => {
         const item = prevItems[id];
-        if (item && (item.width !== width || item.height !== height)) {
+        if (!item) return prevItems;
+
+        const hasSizeChanged = item.width !== width || item.height !== height;
+        const hasStyleChanged = newStyle && (!item.style || item.style.fontSize !== newStyle.fontSize);
+
+        if (hasSizeChanged || hasStyleChanged) {
+            const updatedItem = { ...item, width, height };
+            if (newStyle) {
+                updatedItem.style = { ...item.style, ...newStyle };
+            }
             return {
                 ...prevItems,
-                [id]: { ...item, width, height },
+                [id]: updatedItem,
             };
         }
         return prevItems;
@@ -343,6 +353,7 @@ const Canvas = () => {
 
   return (
     <div className="canvas-container">
+        <CustomDragLayer />
         <SaveStatus lastSaved={lastSaved} />
         <header className="canvas-header">
             <button onClick={() => navigate('/')} className="back-button">

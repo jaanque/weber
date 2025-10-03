@@ -1,5 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useDrag } from 'react-dnd';
+import { getEmptyImage } from 'react-dnd-html5-backend';
 import { Resizable } from 're-resizable';
 import { ItemTypes } from './ItemTypes';
 import './TextBox.css';
@@ -9,14 +10,18 @@ const TextBox = ({ id, left, top, width, height, content, style = {}, onTextChan
     const [isEditing, setIsEditing] = useState(false);
     const [isResizing, setIsResizing] = useState(false);
 
-    const [{ isDragging }, drag] = useDrag(() => ({
+    const [{ isDragging }, drag, dragPreview] = useDrag(() => ({
         type: ItemTypes.TEXT,
-        item: { id, left, top, type: ItemTypes.TEXT, width, height },
+        item: { id, left, top, type: ItemTypes.TEXT, width, height, content, style },
         canDrag: !isEditing && !isResizing,
         collect: (monitor) => ({
             isDragging: monitor.isDragging(),
         }),
-    }), [id, left, top, width, height, isEditing, isResizing]);
+    }), [id, left, top, width, height, isEditing, isResizing, content, style]);
+
+    useEffect(() => {
+        dragPreview(getEmptyImage(), { captureDraggingState: true });
+    }, [dragPreview]);
 
     const handleTextChange = (e) => {
         onTextChange(id, e.target.value);
@@ -44,7 +49,17 @@ const TextBox = ({ id, left, top, width, height, content, style = {}, onTextChan
 
     const handleResizeStop = (e, direction, ref, d) => {
         setIsResizing(false);
-        onResize(id, width + d.width, height + d.height);
+        const newWidth = width + d.width;
+        const newHeight = height + d.height;
+
+        // Heuristic: Font size is roughly 25% of the box height, clamped
+        const newFontSize = Math.max(12, Math.min(100, Math.round(newHeight * 0.25)));
+
+        const newStyle = {
+            fontSize: `${newFontSize}px`,
+        };
+
+        onResize(id, newWidth, newHeight, newStyle);
     };
 
     const containerStyle = {

@@ -15,8 +15,9 @@ def run(playwright):
 
         # 2. Navigate to a project
         expect(page).to_have_url("http://localhost:3000/")
-        # Click the first project link
-        page.locator('.project-item a').first.click()
+        project_list = page.locator(".project-list")
+        expect(project_list).to_be_visible()
+        page.locator('.project-item-link').first.click()
 
         # 3. Wait for canvas to load and select a text box
         expect(page.locator(".canvas-area")).to_be_visible()
@@ -24,24 +25,33 @@ def run(playwright):
         expect(textbox).to_be_visible()
         textbox.click()
 
-        # 4. Trigger autosave message by editing text
-        textbox.dblclick()
-        page.locator(".editable-textarea").first.press(" ")
-        page.locator(".canvas-area").click() # Blur to save
+        # 4. Resize the textbox to test dynamic font size
+        handle = page.locator(".resizable-handle-bottomRight").first
+        handle_box = handle.bounding_box()
+        page.mouse.move(handle_box['x'] + handle_box['width'] / 2, handle_box['y'] + handle_box['height'] / 2)
+        page.mouse.down()
+        page.mouse.move(handle_box['x'] + 100, handle_box['y'] + 100)
+        page.mouse.up()
 
-        # Wait for the "Project saved" message to appear
-        save_status = page.locator(".save-status.visible")
-        expect(save_status).to_be_visible()
-        expect(save_status).to_have_css("background-color", "rgba(0, 0, 0, 0)") # Transparent
+        # 5. Drag the item to show the custom drag preview
+        textbox_box = textbox.bounding_box()
+        page.mouse.move(textbox_box['x'] + textbox_box['width'] / 2, textbox_box['y'] + textbox_box['height'] / 2)
+        page.mouse.down()
+        trash_area = page.locator(".trash-area")
+        expect(trash_area).to_be_visible()
+        trash_box = trash_area.bounding_box()
+        page.mouse.move(trash_box['x'] + trash_box['width'] / 2, trash_box['y'] + trash_box['height'] / 2)
+        page.mouse.up()
 
-        # 5. Show the trash can by dragging an item
-        textbox.drag_to(page.locator(".trash-area"))
+        # 6. Show the styling toolbar to verify font upload and accessibility
+        textbox.click() # re-select the item
+        expect(page.locator(".styling-toolbar")).to_be_visible()
 
-        # 6. Take a screenshot
+        # 7. Take a screenshot
         page.screenshot(path="jules-scratch/verification/verification.png")
 
     finally:
-        # 7. Clean up
+        # 8. Clean up
         context.close()
         browser.close()
 

@@ -98,3 +98,12 @@
 .font-size-input[type=number] {
   -moz-appearance: textfield;
 }
+
+/* Accessibility: Add a clear focus indicator for keyboard navigation */
+.styling-toolbar button:focus-visible,
+.toolbar-select:focus-visible,
+.font-size-input:focus-visible,
+.toolbar-color-picker:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+}
