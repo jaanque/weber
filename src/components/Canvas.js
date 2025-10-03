@@ -8,9 +8,11 @@ import AlignmentGuides from './AlignmentGuides';
 import DistanceLines from './DistanceLines';
 import TextBox from './TextBox';
 import StylingToolbar from './StylingToolbar';
+import SaveStatus from './SaveStatus';
 import './Canvas.css';
 import './DistanceLines.css';
 import './StylingToolbar.css';
+import './SaveStatus.css';
 
 // Debounce function to limit the rate of API calls
 const debounce = (func, delay) => {
@@ -53,6 +55,7 @@ const Canvas = () => {
   const [guides, setGuides] = useState([]);
   const [distanceLines, setDistanceLines] = useState([]);
   const [selectedItemId, setSelectedItemId] = useState(null);
+  const [lastSaved, setLastSaved] = useState(null);
   const itemsRef = useRef(items);
   const canvasRef = useRef(null);
 
@@ -85,6 +88,8 @@ const Canvas = () => {
 
       if (error) {
         console.error('Error updating item:', error);
+      } else {
+        setLastSaved(new Date());
       }
     }, 1000),
     []
@@ -338,6 +343,7 @@ const Canvas = () => {
 
   return (
     <div className="canvas-container">
+        <SaveStatus lastSaved={lastSaved} />
         <header className="canvas-header">
             <button onClick={() => navigate('/')} className="back-button">
                 <FaArrowLeft />
