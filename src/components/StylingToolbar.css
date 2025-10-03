@@ -45,7 +45,7 @@
 }
 
 .toolbar-select,
-.font-size-input {
+.toolbar-input {
     background-color: #f7fafc;
     color: #2d3748;
     border: 1px solid #e2e8f0;
@@ -61,7 +61,13 @@
     cursor: pointer;
 }
 
-.font-size-input {
+.toolbar-input-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.toolbar-input {
     width: 45px;
     text-align: center;
     padding-right: 4px; /* Adjust for number input arrows */
@@ -89,20 +95,20 @@
 }
 
 /* Remove arrows from number input */
-.font-size-input::-webkit-outer-spin-button,
-.font-size-input::-webkit-inner-spin-button {
+.toolbar-input::-webkit-outer-spin-button,
+.toolbar-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-.font-size-input[type=number] {
+.toolbar-input[type=number] {
   -moz-appearance: textfield;
 }
 
 /* Accessibility: Add a clear focus indicator for keyboard navigation */
 .styling-toolbar button:focus-visible,
 .toolbar-select:focus-visible,
-.font-size-input:focus-visible,
+.toolbar-input:focus-visible,
 .toolbar-color-picker:focus-visible {
     outline: 2px solid #3b82f6;
     outline-offset: 2px;

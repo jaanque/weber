@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React from 'react';
 import './StylingToolbar.css';
 import {
     FaBold,
@@ -6,21 +6,17 @@ import {
     FaUnderline,
     FaAlignLeft,
     FaAlignCenter,
-    FaAlignRight,
-    FaUpload
+    FaAlignRight
 } from 'react-icons/fa';
 
 const FONT_FACES = ['Arial', 'Georgia', 'Helvetica', 'Times New Roman', 'Verdana'];
 
-const StylingToolbar = ({ selectedItem, onStyleChange }) => {
-    const [fontFaces, setFontFaces] = useState(FONT_FACES);
-    const fileInputRef = useRef(null);
-
+const StylingToolbar = ({ selectedItem, onStyleChange, onRotate }) => {
     if (!selectedItem) {
         return null;
     }
 
-    const { style = {} } = selectedItem;
+    const { style = {}, rotation = 0 } = selectedItem;
 
     const handleStyleToggle = (property, activeValue, defaultValue = 'normal') => {
         onStyleChange({ ...style, [property]: style[property] === activeValue ? defaultValue : activeValue });
@@ -28,36 +24,6 @@ const StylingToolbar = ({ selectedItem, onStyleChange }) => {
 
     const handleStyleValueChange = (property, value) => {
         onStyleChange({ ...style, [property]: value });
-    };
-
-    const handleFontUpload = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            const fontUrl = event.target.result;
-            const fontName = file.name.split('.').slice(0, -1).join('.').replace(/[-_]/g, ' ');
-
-            const newStyle = document.createElement('style');
-            newStyle.appendChild(document.createTextNode(`
-                @font-face {
-                    font-family: "${fontName}";
-                    src: url(${fontUrl});
-                }
-            `));
-            document.head.appendChild(newStyle);
-
-            if (!fontFaces.includes(fontName)) {
-                setFontFaces(prev => [...prev, fontName]);
-            }
-            handleStyleValueChange('fontFamily', fontName);
-        };
-        reader.readAsDataURL(file);
-    };
-
-    const triggerFontUpload = () => {
-        fileInputRef.current.click();
     };
 
     const currentFontSize = style.fontSize ? parseInt(style.fontSize.replace('px', '')) : 16;
@@ -102,33 +68,32 @@ const StylingToolbar = ({ selectedItem, onStyleChange }) => {
                 className="toolbar-select"
                 aria-label="Select font family"
             >
-                {fontFaces.map(font => <option key={font} value={font}>{font}</option>)}
+                {FONT_FACES.map(font => <option key={font} value={font}>{font}</option>)}
             </select>
 
-            {/* Font Upload */}
-            <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFontUpload}
-                style={{ display: 'none' }}
-                accept=".ttf,.otf,.woff,.woff2"
-                aria-hidden="true"
-            />
-            <button onClick={triggerFontUpload} title="Upload font" aria-label="Upload custom font">
-                <FaUpload />
-            </button>
-
-            {/* Font Size Input */}
-            <input
-                type="number"
-                value={currentFontSize}
-                onChange={(e) => handleStyleValueChange('fontSize', `${e.target.value}px`)}
-                className="font-size-input"
-                min="8"
-                max="120"
-                title="Font size"
-                aria-label="Set font size"
-            />
+            {/* Font Size and Rotation Inputs */}
+            <div className="toolbar-input-group">
+                <input
+                    type="number"
+                    value={currentFontSize}
+                    onChange={(e) => handleStyleValueChange('fontSize', `${e.target.value}px`)}
+                    className="toolbar-input"
+                    min="8"
+                    max="120"
+                    title="Font size"
+                    aria-label="Set font size"
+                />
+                <input
+                    type="number"
+                    value={Math.round(rotation)}
+                    onChange={(e) => onRotate(selectedItem.id, parseFloat(e.target.value))}
+                    className="toolbar-input"
+                    min="-360"
+                    max="360"
+                    title="Rotation"
+                    aria-label="Set rotation"
+                />
+            </div>
 
             {/* Color Picker */}
             <input

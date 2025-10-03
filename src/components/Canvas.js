@@ -465,6 +465,7 @@ const Canvas = () => {
                         <StylingToolbar
                             selectedItem={selectedItem}
                             onStyleChange={handleStyleChange}
+                            onRotate={handleRotate}
                         />
                     </div>
                 )}
