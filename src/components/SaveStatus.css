@@ -1,16 +1,19 @@
 .save-status {
   position: absolute;
   top: 20px;
-  right: 20px;
+  left: 50%;
+  transform: translateX(-50%);
   background-color: transparent;
-  color: #a0aec0; /* Gray-400 for a subtle look */
+  color: #6b7280; /* A slightly darker gray for better visibility */
   padding: 8px 12px;
   border-radius: 4px;
   font-size: 14px;
+  font-weight: 500;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.5s, visibility 0.5s;
   z-index: 1000;
+  text-align: center;
 }
 
 .save-status.visible {

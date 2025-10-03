@@ -28,7 +28,7 @@ const debounce = (func, delay) => {
 const DraggableTool = ({ type, icon, text }) => {
   const [{ isDragging }, drag] = useDrag(() => ({
     type: type,
-    item: { type: type },
+    item: { type: type, width: 150, height: 50 }, // Default dimensions for new items
     collect: (monitor) => ({
       isDragging: !!monitor.isDragging(),
     }),
@@ -72,14 +72,15 @@ const Canvas = () => {
       const itemToSave = itemsRef.current[itemId];
       if (!itemToSave) return;
 
-      const { id, left, top, content, width, height, style } = itemToSave;
+      const { id, left, top, content, width, height, style, rotation } = itemToSave;
       const updateData = {
           left_pos: left,
           top_pos: top,
           content,
           width,
           height,
-          style
+          style,
+          rotation
       };
 
       const { error } = await supabase
@@ -210,22 +211,27 @@ const Canvas = () => {
     saveItem(id);
   };
 
-  const handleResize = useCallback((id, width, height, newStyle) => {
+  const handleResize = useCallback((id, width, height) => {
     setItems(prevItems => {
         const item = prevItems[id];
-        if (!item) return prevItems;
-
-        const hasSizeChanged = item.width !== width || item.height !== height;
-        const hasStyleChanged = newStyle && (!item.style || item.style.fontSize !== newStyle.fontSize);
-
-        if (hasSizeChanged || hasStyleChanged) {
-            const updatedItem = { ...item, width, height };
-            if (newStyle) {
-                updatedItem.style = { ...item.style, ...newStyle };
-            }
+        if (item && (item.width !== width || item.height !== height)) {
             return {
                 ...prevItems,
-                [id]: updatedItem,
+                [id]: { ...item, width, height },
+            };
+        }
+        return prevItems;
+    });
+    saveItem(id);
+  }, [saveItem]);
+
+  const handleRotate = useCallback((id, rotation) => {
+    setItems(prevItems => {
+        const item = prevItems[id];
+        if (item && item.rotation !== rotation) {
+            return {
+                ...prevItems,
+                [id]: { ...item, rotation },
             };
         }
         return prevItems;
@@ -255,51 +261,130 @@ const Canvas = () => {
   // --- Drag and Drop Logic ---
   const [, drop] = useDrop(() => ({
     accept: ItemTypes.TEXT,
+    hover(item, monitor) {
+      if (!canvasRef.current || !monitor.isOver({ shallow: true })) {
+        setGuides([]);
+        setDistanceLines([]);
+        return;
+      }
+
+      const canvasRect = canvasRef.current.getBoundingClientRect();
+      const clientOffset = monitor.getClientOffset();
+      if (!clientOffset) return;
+
+      const { width, height } = item;
+      let currentLeft, currentTop;
+
+      if (item.id) {
+        const delta = monitor.getDifferenceFromInitialOffset();
+        if (!delta) return;
+        currentLeft = Math.round(item.left + delta.x);
+        currentTop = Math.round(item.top + delta.y);
+      } else {
+        currentLeft = Math.round(clientOffset.x - canvasRect.left - (width / 2));
+        currentTop = Math.round(clientOffset.y - canvasRect.top - (height / 2));
+      }
+
+      const SNAP_THRESHOLD = 5;
+      const newGuides = [];
+      const newDistanceLines = [];
+
+      // Canvas center guides
+      const canvasCenterX = canvasRect.width / 2;
+      const canvasCenterY = canvasRect.height / 2;
+      const itemCenterX = currentLeft + width / 2;
+      const itemCenterY = currentTop + height / 2;
+
+      // Horizontal center guide
+      if (Math.abs(itemCenterX - canvasCenterX) < SNAP_THRESHOLD) {
+        newGuides.push({ type: 'vertical', position: canvasCenterX });
+      }
+      // Vertical center guide
+      if (Math.abs(itemCenterY - canvasCenterY) < SNAP_THRESHOLD) {
+        newGuides.push({ type: 'horizontal', position: canvasCenterY });
+      }
+      setGuides(newGuides);
+
+      // Distance lines to edges (only show if close to edge)
+      const DISTANCE_THRESHOLD = 50;
+      if (currentTop < DISTANCE_THRESHOLD && currentTop > 0) {
+        newDistanceLines.push({ x1: currentLeft + width/2, y1: 0, x2: currentLeft + width/2, y2: currentTop, distance: currentTop });
+      }
+      if (currentLeft < DISTANCE_THRESHOLD && currentLeft > 0) {
+        newDistanceLines.push({ x1: 0, y1: currentTop + height/2, x2: currentLeft, y2: currentTop + height/2, distance: currentLeft });
+      }
+      const rightEdge = currentLeft + width;
+      const distToRight = canvasRect.width - rightEdge;
+      if (distToRight < DISTANCE_THRESHOLD && distToRight > 0) {
+        newDistanceLines.push({ x1: rightEdge, y1: currentTop + height/2, x2: canvasRect.width, y2: currentTop + height/2, distance: Math.round(distToRight) });
+      }
+      const bottomEdge = currentTop + height;
+      const distToBottom = canvasRect.height - bottomEdge;
+      if (distToBottom < DISTANCE_THRESHOLD && distToBottom > 0) {
+        newDistanceLines.push({ x1: currentLeft + width/2, y1: bottomEdge, x2: currentLeft + width/2, y2: canvasRect.height, distance: Math.round(distToBottom) });
+      }
+      setDistanceLines(newDistanceLines);
+    },
     drop: (item, monitor) => {
       setGuides([]);
       setDistanceLines([]);
-      const id = item.id;
-      if (!id) {
-          if (canvasRef.current) {
-            const canvasRect = canvasRef.current.getBoundingClientRect();
-            const clientOffset = monitor.getClientOffset();
-            if (clientOffset) {
-              const left = Math.round(clientOffset.x - canvasRect.left);
-              const top = Math.round(clientOffset.y - canvasRect.top);
+      if (!canvasRef.current) return;
 
-              const newId = `temp-${Date.now()}`;
-              const newItem = {
-                  id: newId,
-                  left,
-                  top,
-                  content: 'Text area',
-                  width: 150,
-                  height: 50,
-                  style: {
-                      fontSize: '16px',
-                      fontWeight: 'normal',
-                      fontStyle: 'normal',
-                      textDecoration: 'none',
-                      fontFamily: 'Arial',
-                      color: '#000000',
-                      textAlign: 'left'
-                  }
-              };
+      const canvasRect = canvasRef.current.getBoundingClientRect();
+      let finalLeft, finalTop;
 
-              setItems(prev => ({ ...prev, [newId]: newItem }));
-              createItem(newItem);
-            }
-          }
-          return;
+      if (item.id) {
+        const delta = monitor.getDifferenceFromInitialOffset();
+        if (!delta) return;
+        finalLeft = Math.round(item.left + delta.x);
+        finalTop = Math.round(item.top + delta.y);
+      } else {
+        const clientOffset = monitor.getClientOffset();
+        if (!clientOffset) return;
+        finalLeft = Math.round(clientOffset.x - canvasRect.left - (item.width / 2));
+        finalTop = Math.round(clientOffset.y - canvasRect.top - (item.height / 2));
       }
 
-      const delta = monitor.getDifferenceFromInitialOffset();
-      if (!delta) return;
+      const { width, height } = item;
+      const SNAP_THRESHOLD = 5;
+      const canvasCenterX = canvasRect.width / 2;
+      const canvasCenterY = canvasRect.height / 2;
+      const itemCenterX = finalLeft + width / 2;
+      const itemCenterY = finalTop + height / 2;
 
-      let newLeft = Math.round(item.left + delta.x);
-      let newTop = Math.round(item.top + delta.y);
+      // Snap to center
+      if (Math.abs(itemCenterX - canvasCenterX) < SNAP_THRESHOLD) {
+        finalLeft = Math.round(canvasCenterX - width / 2);
+      }
+      if (Math.abs(itemCenterY - canvasCenterY) < SNAP_THRESHOLD) {
+        finalTop = Math.round(canvasCenterY - height / 2);
+      }
 
-      moveItem(id, newLeft, newTop);
+      if (item.id) {
+        moveItem(item.id, finalLeft, finalTop);
+      } else {
+        const newId = `temp-${Date.now()}`;
+        const newItem = {
+            id: newId,
+            left: finalLeft,
+            top: finalTop,
+            content: 'Text area',
+            width: item.width,
+            height: item.height,
+            rotation: 0,
+            style: {
+                fontSize: '16px',
+                fontWeight: 'normal',
+                fontStyle: 'normal',
+                textDecoration: 'none',
+                fontFamily: 'Arial',
+                color: '#000000',
+                textAlign: 'left'
+            }
+        };
+        setItems(prev => ({ ...prev, [newId]: newItem }));
+        createItem(newItem);
+      }
     },
   }), [moveItem]);
 
@@ -387,6 +472,7 @@ const Canvas = () => {
                     {...item}
                     onTextChange={handleTextChange}
                     onResize={handleResize}
+                    onRotate={handleRotate}
                     onSelect={handleSelect}
                     isSelected={selectedItemId === item.id}
                   />

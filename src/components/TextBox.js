@@ -3,21 +3,24 @@ import { useDrag } from 'react-dnd';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import { Resizable } from 're-resizable';
 import { ItemTypes } from './ItemTypes';
+import { FaArrowsAlt, FaSyncAlt } from 'react-icons/fa';
 import './TextBox.css';
 
-const TextBox = ({ id, left, top, width, height, content, style = {}, onTextChange, onResize, onSelect, isSelected }) => {
+const TextBox = ({ id, left, top, width, height, rotation = 0, content, style = {}, onTextChange, onResize, onRotate, onSelect, isSelected }) => {
     const textareaRef = useRef(null);
+    const boxRef = useRef(null);
     const [isEditing, setIsEditing] = useState(false);
     const [isResizing, setIsResizing] = useState(false);
+    const [isRotating, setIsRotating] = useState(false);
 
     const [{ isDragging }, drag, dragPreview] = useDrag(() => ({
         type: ItemTypes.TEXT,
-        item: { id, left, top, type: ItemTypes.TEXT, width, height, content, style },
-        canDrag: !isEditing && !isResizing,
+        item: { id, left, top, type: ItemTypes.TEXT, width, height, content, style, rotation },
+        canDrag: !isEditing && !isResizing && !isRotating,
         collect: (monitor) => ({
             isDragging: monitor.isDragging(),
         }),
-    }), [id, left, top, width, height, isEditing, isResizing, content, style]);
+    }), [id, left, top, width, height, isEditing, isResizing, isRotating, content, style, rotation]);
 
     useEffect(() => {
         dragPreview(getEmptyImage(), { captureDraggingState: true });
@@ -49,17 +52,35 @@ const TextBox = ({ id, left, top, width, height, content, style = {}, onTextChan
 
     const handleResizeStop = (e, direction, ref, d) => {
         setIsResizing(false);
-        const newWidth = width + d.width;
-        const newHeight = height + d.height;
+        onResize(id, width + d.width, height + d.height);
+    };
 
-        // Heuristic: Font size is roughly 25% of the box height, clamped
-        const newFontSize = Math.max(12, Math.min(100, Math.round(newHeight * 0.25)));
+    const handleRotateStart = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsRotating(true);
 
-        const newStyle = {
-            fontSize: `${newFontSize}px`,
+        const box = boxRef.current.getBoundingClientRect();
+        const centerX = box.left + box.width / 2;
+        const centerY = box.top + box.height / 2;
+
+        const startAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * (180 / Math.PI);
+        const initialRotation = rotation;
+
+        const handleMouseMove = (moveEvent) => {
+            const currentAngle = Math.atan2(moveEvent.clientY - centerY, moveEvent.clientX - centerX) * (180 / Math.PI);
+            const newRotation = initialRotation + (currentAngle - startAngle);
+            onRotate(id, newRotation);
         };
 
-        onResize(id, newWidth, newHeight, newStyle);
+        const handleMouseUp = () => {
+            setIsRotating(false);
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
     };
 
     const containerStyle = {
@@ -68,6 +89,7 @@ const TextBox = ({ id, left, top, width, height, content, style = {}, onTextChan
         top,
         zIndex: isSelected ? 1 : 'auto',
         opacity: isDragging ? 0.4 : 1,
+        transform: `rotate(${rotation}deg)`,
     };
 
     const resizableStyle = {
@@ -87,7 +109,7 @@ const TextBox = ({ id, left, top, width, height, content, style = {}, onTextChan
         outline: 'none',
         boxSizing: 'border-box',
         overflow: 'hidden',
-        cursor: isEditing ? 'text' : (isResizing ? 'auto' : 'move'),
+        cursor: isEditing ? 'text' : 'default',
         color: style.color || '#000000',
         fontFamily: style.fontFamily || 'Arial',
         fontSize: style.fontSize || '16px',
@@ -98,7 +120,26 @@ const TextBox = ({ id, left, top, width, height, content, style = {}, onTextChan
     };
 
     return (
-        <div ref={drag} style={containerStyle}>
+        <div ref={boxRef} style={containerStyle}>
+            {isSelected && !isEditing && (
+                <>
+                    <div
+                        ref={drag}
+                        className="drag-handle"
+                        title="Drag to move"
+                        style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
+                    >
+                        <FaArrowsAlt />
+                    </div>
+                    <div
+                        className="rotate-handle"
+                        onMouseDown={handleRotateStart}
+                        title="Drag to rotate"
+                    >
+                        <FaSyncAlt />
+                    </div>
+                </>
+            )}
             <Resizable
                 style={resizableStyle}
                 size={{ width, height }}
