@@ -79,8 +79,26 @@ const Canvas = () => {
   const [selectedItemId, setSelectedItemId] = useState(null);
   const [lastSaved, setLastSaved] = useState(null);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
   const itemsRef = useRef(items);
   const canvasRef = useRef(null);
+
+  const handleSaveProjectName = async (newName) => {
+    if (newName.trim() === '') return;
+
+    setProjectName(newName);
+    setIsEditingTitle(false);
+
+    const { error } = await supabase
+      .from('projects')
+      .update({ name: newName })
+      .eq('id', projectId);
+
+    if (error) {
+      console.error('Error updating project name:', error);
+      // Optionally, revert the name or show an error to the user
+    }
+  };
 
   // Keep a ref to the latest items state to avoid stale closures in debounced function
   useEffect(() => {
@@ -460,7 +478,30 @@ const Canvas = () => {
         <button onClick={() => navigate('/')} className="back-button-float">
           <FaArrowLeft />
         </button>
-        <span className="project-name-float">{projectName}</span>
+        {isEditingTitle ? (
+          <input
+            type="text"
+            defaultValue={projectName}
+            onBlur={(e) => handleSaveProjectName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleSaveProjectName(e.target.value);
+              } else if (e.key === 'Escape') {
+                setIsEditingTitle(false);
+              }
+            }}
+            autoFocus
+            className="project-name-input"
+          />
+        ) : (
+          <span
+            className="project-name-float"
+            onClick={() => setIsEditingTitle(true)}
+            title="Click to edit"
+          >
+            {projectName}
+          </span>
+        )}
       </div>
 
       <div className="floating-ui-top-right">

@@ -161,9 +161,36 @@
 }
 
 .project-name-float {
+    position: relative; /* Needed for the pseudo-element */
     font-weight: 500;
     font-size: 16px;
     color: #333;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+    cursor: pointer;
+}
+
+.project-name-float:hover {
+    background-color: #f0f0f0;
+}
+
+.project-name-float:hover::after {
+    content: '✏️'; /* Pencil emoji as an icon */
+    font-size: 12px;
+    margin-left: 8px;
+    opacity: 0.7;
+}
+
+.project-name-input {
+    font-weight: 500;
+    font-size: 16px;
+    color: #333;
+    border: 1px solid #3b82f6; /* Highlight when editing */
+    border-radius: 6px;
+    padding: 4px 8px;
+    outline: none;
+    background-color: white;
 }
 
 .share-button-float {
