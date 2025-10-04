@@ -270,13 +270,13 @@ const Canvas = () => {
       const itemCenterX = currentLeft + width / 2;
       const itemCenterY = currentTop + height / 2;
 
-      // Horizontal center guide
+      // Vertical guide for horizontal center alignment
       if (Math.abs(itemCenterX - canvasCenterX) < SNAP_THRESHOLD) {
-        newGuides.push({ type: 'vertical', position: canvasCenterX });
+        newGuides.push({ orientation: 'vertical', left: canvasCenterX });
       }
-      // Vertical center guide
+      // Horizontal guide for vertical center alignment
       if (Math.abs(itemCenterY - canvasCenterY) < SNAP_THRESHOLD) {
-        newGuides.push({ type: 'horizontal', position: canvasCenterY });
+        newGuides.push({ orientation: 'horizontal', top: canvasCenterY });
       }
       setGuides(newGuides);
 

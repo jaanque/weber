@@ -1,13 +1,17 @@
 .alignment-guides .guide {
   position: absolute;
-  background-color: var(--guide-color);
-  z-index: 9998;
+  background-color: #ff4d4d; /* Bright red for high visibility */
+  z-index: 99; /* Ensure it's above canvas items but below drag layer */
 }
 
 .alignment-guides .guide.vertical {
   width: 1px;
+  height: 100%; /* Span the full height of the canvas */
+  top: 0;
 }
 
 .alignment-guides .guide.horizontal {
   height: 1px;
+  width: 100%; /* Span the full width of the canvas */
+  left: 0;
 }
