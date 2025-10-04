@@ -438,7 +438,6 @@ const Canvas = () => {
           </button>
           <div className="project-info">
             <span className="project-name">{projectName}</span>
-            <span className="project-actions">Undo/Redo will be here</span>
           </div>
         </div>
         <div className="header-center">
