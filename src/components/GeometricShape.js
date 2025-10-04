@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useDrag } from 'react-dnd';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import { Resizable } from 're-resizable';
+import { motion } from 'framer-motion';
 import { ItemTypes } from './ItemTypes';
 import { FaArrowsAlt, FaSyncAlt } from 'react-icons/fa';
 import './GeometricShape.css';
@@ -107,14 +108,6 @@ const GeometricShape = ({ id, left, top, width, height, rotation = 0, shapeType,
         document.addEventListener('mouseup', handleMouseUp);
     };
 
-    const containerStyle = {
-        position: 'absolute',
-        left,
-        top,
-        zIndex: isSelected ? 10 : 'auto',
-        opacity: isDragging ? 0.5 : 1,
-        transform: `rotate(${rotation}deg)`,
-    };
 
     const resizableStyle = {
         border: isSelected ? '2px solid #3b82f6' : '2px solid transparent',
@@ -125,8 +118,24 @@ const GeometricShape = ({ id, left, top, width, height, rotation = 0, shapeType,
         justifyContent: 'center',
     };
 
+    const animationProps = {
+        initial: { opacity: 0, scale: 0.95 },
+        animate: {
+            left,
+            top,
+            rotate: rotation,
+            opacity: isDragging ? 0.5 : 1,
+            scale: 1,
+        },
+        transition: { type: 'spring', stiffness: 300, damping: 30 },
+        style: {
+            position: 'absolute',
+            zIndex: isSelected ? 10 : 'auto',
+        },
+    };
+
     return (
-        <div ref={boxRef} style={containerStyle} onClick={handleClick}>
+        <motion.div ref={boxRef} {...animationProps} onClick={handleClick}>
             {isSelected && (
                 <>
                     <div
@@ -175,7 +184,7 @@ const GeometricShape = ({ id, left, top, width, height, rotation = 0, shapeType,
                   <ShapeContent shapeType={shapeType} width={width} height={height} style={style} />
                 </svg>
             </Resizable>
-        </div>
+        </motion.div>
     );
 };
 

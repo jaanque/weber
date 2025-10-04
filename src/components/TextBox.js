@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useDrag } from 'react-dnd';
 import { getEmptyImage } from 'react-dnd-html5-backend';
 import { Resizable } from 're-resizable';
+import { motion } from 'framer-motion';
 import { ItemTypes } from './ItemTypes';
 import { FaArrowsAlt, FaSyncAlt } from 'react-icons/fa';
 import './TextBox.css';
@@ -86,14 +87,6 @@ const TextBox = ({ id, left, top, width, height, rotation = 0, content, style = 
         document.addEventListener('mouseup', handleMouseUp);
     };
 
-    const containerStyle = {
-        position: 'absolute',
-        left,
-        top,
-        zIndex: isSelected ? 1 : 'auto',
-        opacity: isDragging ? 0.4 : 1,
-        transform: `rotate(${rotation}deg)`,
-    };
 
     const resizableStyle = {
         border: isSelected ? '2px solid #3b82f6' : '2px solid transparent',
@@ -122,8 +115,24 @@ const TextBox = ({ id, left, top, width, height, rotation = 0, content, style = 
         textAlign: style.textAlign || 'left',
     };
 
+    const animationProps = {
+        initial: { opacity: 0, scale: 0.95 },
+        animate: {
+            left,
+            top,
+            rotate: rotation,
+            opacity: isDragging ? 0.4 : 1,
+            scale: 1,
+        },
+        transition: { type: 'spring', stiffness: 300, damping: 30 },
+        style: {
+            position: 'absolute',
+            zIndex: isSelected ? 1 : 'auto',
+        },
+    };
+
     return (
-        <div ref={boxRef} style={containerStyle}>
+        <motion.div ref={boxRef} {...animationProps}>
             {isSelected && !isEditing && (
                 <>
                     <div
@@ -182,7 +191,7 @@ const TextBox = ({ id, left, top, width, height, rotation = 0, content, style = 
                     />
                 </div>
             </Resizable>
-        </div>
+        </motion.div>
     );
 };
 
