@@ -420,91 +420,101 @@ const Canvas = () => {
 
   const selectedItem = selectedItemId ? items[selectedItemId] : null;
 
+  const getToolbarStyle = () => {
+      if (!selectedItem || !canvasRef.current) return {};
+
+      const canvasRect = canvasRef.current.getBoundingClientRect();
+      const itemTop = selectedItem.top;
+      const itemLeft = selectedItem.left;
+
+      const top = itemTop - 60; // Default position above the item
+      const left = itemLeft;
+
+      // Flip below if not enough space above
+      if (top < 0) {
+          return { top: itemTop + selectedItem.height + 10, left };
+      }
+      return { top, left };
+  };
+
   if (loading) {
     return <div>Loading...</div>;
   }
 
   return (
-    <div className="editor-layout">
+    <div
+      ref={node => {
+        canvasRef.current = node;
+        drop(node);
+      }}
+      className="canvas-container" // This will be styled as full-screen
+      onClick={handleCanvasClick}
+      data-testid="canvas-area"
+    >
       <CustomDragLayer />
       <SaveStatus lastSaved={lastSaved} />
       <ShortcutsModal isOpen={isShortcutsModalOpen} onClose={() => setIsShortcutsModalOpen(false)} />
 
-      {/* New Header Structure */}
-      <header className="editor-header">
-        <div className="header-left">
-          <button onClick={() => navigate('/')} className="back-button">
-            <FaArrowLeft />
-          </button>
-          <div className="project-info">
-            <span className="project-name">{projectName}</span>
-          </div>
-        </div>
-        <div className="header-center">
-          {selectedItem && (
-            <StylingToolbar
-              selectedItem={selectedItem}
-              onStyleChange={handleStyleChange}
-              onRotate={handleRotate}
-            />
-          )}
-        </div>
-        <div className="header-right">
-            <UserProfile />
-        </div>
-      </header>
+      {/* Floating UI Elements */}
+      <div className="floating-ui-top-left">
+        <button onClick={() => navigate('/')} className="back-button-float">
+          <FaArrowLeft />
+        </button>
+        <span className="project-name-float">{projectName}</span>
+      </div>
 
-      <div className="editor-body">
-        {/* Left Sidebar for Tools */}
-        <aside className="editor-left-sidebar">
+      <div className="floating-ui-top-right">
+        <button onClick={() => setIsShortcutsModalOpen(true)} className="action-button-float" aria-label="Show shortcuts">
+            <FaKeyboard />
+        </button>
+        <UserProfile />
+      </div>
+
+      <div className="floating-ui-bottom-right">
+        <button className="share-button-float">Share</button>
+      </div>
+
+
+      <aside className="floating-toolbar">
           <DraggableTool type={ItemTypes.TEXT} icon={<FaFont />} text="Text" />
           <ShapeTool />
-        </aside>
+      </aside>
 
-        {/* Main Canvas Area */}
-        <main
-          ref={node => { canvasRef.current = node; drop(node); }}
-          className="canvas-area"
-          onClick={handleCanvasClick}
-          data-testid="canvas-area"
-        >
-          <AlignmentGuides guides={guides} />
-          <DistanceLines lines={distanceLines} />
-          {Object.values(items).map((item) => {
-            if (item.type === ItemTypes.SHAPE) {
-              return (
-                <GeometricShape
-                  key={item.id}
-                  {...item}
-                  onResize={handleResize}
-                  onRotate={handleRotate}
-                  onSelect={handleSelect}
-                  isSelected={selectedItemId === item.id}
-                />
-              );
-            }
-            return (
-              <TextBox
-                key={item.id}
-                {...item}
-                onTextChange={handleTextChange}
-                onResize={handleResize}
-                onRotate={handleRotate}
-                onSelect={handleSelect}
-                isSelected={selectedItemId === item.id}
-              />
-            );
-          })}
-        </main>
-      </div>
+      {selectedItem && (
+        <div className="floating-styling-toolbar">
+          <StylingToolbar
+            selectedItem={selectedItem}
+            onStyleChange={handleStyleChange}
+            onRotate={handleRotate}
+          />
+        </div>
+      )}
+      <AlignmentGuides guides={guides} />
+      <DistanceLines lines={distanceLines} />
+      {Object.values(items).map((item) => {
+        if (item.type === ItemTypes.SHAPE) {
+          return (
+            <GeometricShape
+              key={item.id}
+              {...item}
+              onResize={handleResize}
+              onRotate={handleRotate}
+              onSelect={handleSelect}
+              isSelected={selectedItemId === item.id}
+            />
+          );
+        }
+        return (<TextBox
+          key={item.id}
+          {...item}
+          onTextChange={handleTextChange}
+          onResize={handleResize}
+          onRotate={handleRotate}
+          onSelect={handleSelect}
+          isSelected={selectedItemId === item.id}
+        />);
+      })}
 
-      {/* Share Button */}
-      <div className="editor-footer">
-          <button className="share-button">Share</button>
-      </div>
-
-
-      {/* Trash Area */}
       {isDragging && (
         <div ref={trashDrop} className={`trash-area ${isTrashOver ? 'hovered' : ''}`}>
           <FaTrashAlt size={24} />
