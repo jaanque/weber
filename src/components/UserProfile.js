@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import ProfileModal from './ProfileModal';
 import './UserProfile.css';
+import './ProfileModal.css';
 import { FaUserCircle } from 'react-icons/fa';
 
 const UserProfile = () => {
     const [isOpen, setIsOpen] = useState(false);
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
     const navigate = useNavigate();
     const dropdownRef = useRef(null);
 
@@ -29,21 +32,27 @@ const UserProfile = () => {
 
 
     return (
-        <div className="user-profile-container" ref={dropdownRef}>
-            <button onClick={() => setIsOpen(!isOpen)} className="profile-trigger">
-                <FaUserCircle size={28} />
-            </button>
+        <>
+            <div className="user-profile-container" ref={dropdownRef}>
+                <button onClick={() => setIsOpen(!isOpen)} className="profile-trigger">
+                    <FaUserCircle size={28} />
+                </button>
 
-            {isOpen && (
-                <div className="profile-dropdown">
-                    <ul>
-                        <li onClick={() => navigate('/')}>Home</li>
-                        <li onClick={() => alert('Profile page not implemented yet!')}>Profile</li>
-                        <li onClick={handleLogout}>Log Out</li>
-                    </ul>
-                </div>
-            )}
-        </div>
+                {isOpen && (
+                    <div className="profile-dropdown">
+                        <ul>
+                            <li onClick={() => navigate('/')}>Home</li>
+                            <li onClick={() => {
+                                setIsProfileModalOpen(true);
+                                setIsOpen(false); // Close dropdown when opening modal
+                            }}>Profile</li>
+                            <li onClick={handleLogout}>Log Out</li>
+                        </ul>
+                    </div>
+                )}
+            </div>
+            <ProfileModal isOpen={isProfileModalOpen} onClose={() => setIsProfileModalOpen(false)} />
+        </>
     );
 };
 

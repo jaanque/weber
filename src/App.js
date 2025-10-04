@@ -6,16 +6,14 @@ import { supabase } from './supabaseClient';
 import Home from './components/Home';
 import Login from './components/Login';
 import SignUp from './components/SignUp';
-import Sidebar from './components/Sidebar';
-import NewProjectModal from './components/NewProjectModal';
 import Canvas from './components/Canvas';
 import './App.css';
 
+// The AuthenticatedLayout now only fetches data and provides it via context.
+// All layout logic (like sidebars or floating buttons) is delegated to the child routes (Home, Canvas).
 const AuthenticatedLayout = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [projects, setProjects] = useState([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const location = useLocation();
   const isCanvasView = location.pathname.startsWith('/projects/');
 
@@ -39,9 +37,11 @@ const AuthenticatedLayout = () => {
       setLoadingProjects(false);
     };
 
+    // We only fetch projects when we are on a page that needs them, like the home page.
     if (!isCanvasView) {
       fetchProjects();
     } else {
+      setProjects([]); // Clear projects when on canvas view to avoid stale data
       setLoadingProjects(false);
     }
   }, [isCanvasView]);
@@ -50,29 +50,13 @@ const AuthenticatedLayout = () => {
     setProjects((currentProjects) => [newProject, ...currentProjects]);
   };
 
-  const toggleSidebar = () => {
-    setIsSidebarCollapsed(!isSidebarCollapsed);
-  };
-
   return (
-    <div className={`app-layout ${isCanvasView ? 'canvas-mode' : ''} ${!isCanvasView && isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-      {!isCanvasView && (
-        <Sidebar
-          onNewProjectClick={() => setIsModalOpen(true)}
-          isCollapsed={isSidebarCollapsed}
-          toggleSidebar={toggleSidebar}
-        />
-      )}
+    <div className="app-layout">
+      {/* The main content area now takes up the full space */}
       <main className="main-content">
-        <Outlet context={{ projects, setProjects, loadingProjects }} />
+        {/* Pass down project management functions to children (Home.js) */}
+        <Outlet context={{ projects, setProjects, loadingProjects, handleProjectAdded }} />
       </main>
-      {!isCanvasView && (
-        <NewProjectModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onProjectAdded={handleProjectAdded}
-        />
-      )}
     </div>
   );
 };
