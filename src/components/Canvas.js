@@ -77,14 +77,8 @@ const Canvas = () => {
   const [selectedItemId, setSelectedItemId] = useState(null);
   const [lastSaved, setLastSaved] = useState(null);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
-  const [viewOffset, setViewOffset] = useState({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
-  const isSpacePressedRef = useRef(false);
-  const panStartRef = useRef({ x: 0, y: 0 });
   const itemsRef = useRef(items);
   const canvasRef = useRef(null);
-  const canvasContentRef = useRef(null);
-
 
   // Keep a ref to the latest items state to avoid stale closures in debounced function
   useEffect(() => {
@@ -92,19 +86,9 @@ const Canvas = () => {
   }, [items]);
 
 
-  // --- Keyboard Shortcuts & Panning ---
+  // --- Keyboard Shortcuts for Undo/Redo ---
   useEffect(() => {
     const handleKeyDown = (event) => {
-      // Panning with spacebar
-      if (event.code === 'Space') {
-        event.preventDefault();
-        if (!isSpacePressedRef.current) {
-          isSpacePressedRef.current = true;
-          if (canvasRef.current) canvasRef.current.style.cursor = 'grab';
-        }
-      }
-
-      // Undo/Redo
       if ((event.metaKey || event.ctrlKey) && event.key === 'z') {
         event.preventDefault();
         undo();
@@ -113,24 +97,11 @@ const Canvas = () => {
         redo();
       }
     };
-
-    const handleKeyUp = (event) => {
-      if (event.code === 'Space') {
-        isSpacePressedRef.current = false;
-        // Only change cursor if not in the middle of a pan
-        if (canvasRef.current && !isPanning) {
-            canvasRef.current.style.cursor = 'default';
-        }
-      }
-    };
-
     window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [undo, redo, isPanning]); // isPanning is included to correctly manage cursor on keyup
+  }, [undo, redo]);
 
 
   // --- Database Operations ---
@@ -247,41 +218,10 @@ const Canvas = () => {
   }
 
   const handleCanvasClick = (e) => {
-    // Deselect if clicking on the canvas background
-    if (e.target === canvasRef.current || e.target === canvasContentRef.current) {
+    if (e.target === e.currentTarget) {
         setSelectedItemId(null);
     }
   }
-
-  const handleMouseDown = (e) => {
-      handleCanvasClick(e);
-      if (isSpacePressedRef.current) {
-          setIsPanning(true);
-          panStartRef.current = {
-              x: e.clientX - viewOffset.x,
-              y: e.clientY - viewOffset.y,
-          };
-          if (canvasRef.current) canvasRef.current.style.cursor = 'grabbing';
-      }
-  };
-
-  const handleMouseUp = () => {
-      if (isPanning) {
-          setIsPanning(false);
-          if (canvasRef.current) {
-              canvasRef.current.style.cursor = isSpacePressedRef.current ? 'grab' : 'default';
-          }
-      }
-  };
-
-  const handleMouseMove = (e) => {
-      if (isPanning) {
-          const newX = e.clientX - panStartRef.current.x;
-          const newY = e.clientY - panStartRef.current.y;
-          setViewOffset({ x: newX, y: newY });
-      }
-  };
-
 
   const handleStyleChange = (newStyle) => {
     if (!selectedItemId) return;
@@ -308,36 +248,55 @@ const Canvas = () => {
       const { width, height } = item;
       let currentLeft, currentTop;
 
-      // Calculate position relative to the panned canvas content
       if (item.id) {
         const delta = monitor.getDifferenceFromInitialOffset();
         if (!delta) return;
         currentLeft = Math.round(item.left + delta.x);
         currentTop = Math.round(item.top + delta.y);
       } else {
-        currentLeft = Math.round(clientOffset.x - canvasRect.left - viewOffset.x - (width / 2));
-        currentTop = Math.round(clientOffset.y - canvasRect.top - viewOffset.y - (height / 2));
+        currentLeft = Math.round(clientOffset.x - canvasRect.left - (width / 2));
+        currentTop = Math.round(clientOffset.y - canvasRect.top - (height / 2));
       }
 
       const SNAP_THRESHOLD = 5;
       const newGuides = [];
-      setDistanceLines([]); // Distance lines are disabled for now with infinite canvas
+      const newDistanceLines = [];
 
-      // --- Alignment Guides (relative to canvas-area) ---
-      const itemCenterXInArea = currentLeft + viewOffset.x + width / 2;
-      const itemCenterYInArea = currentTop + viewOffset.y + height / 2;
-      const canvasCenterXInArea = canvasRect.width / 2;
-      const canvasCenterYInArea = canvasRect.height / 2;
+      // Canvas center guides
+      const canvasCenterX = canvasRect.width / 2;
+      const canvasCenterY = canvasRect.height / 2;
+      const itemCenterX = currentLeft + width / 2;
+      const itemCenterY = currentTop + height / 2;
 
       // Horizontal center guide
-      if (Math.abs(itemCenterXInArea - canvasCenterXInArea) < SNAP_THRESHOLD) {
-        newGuides.push({ type: 'vertical', position: canvasCenterXInArea });
+      if (Math.abs(itemCenterX - canvasCenterX) < SNAP_THRESHOLD) {
+        newGuides.push({ type: 'vertical', position: canvasCenterX });
       }
       // Vertical center guide
-      if (Math.abs(itemCenterYInArea - canvasCenterYInArea) < SNAP_THRESHOLD) {
-        newGuides.push({ type: 'horizontal', position: canvasCenterYInArea });
+      if (Math.abs(itemCenterY - canvasCenterY) < SNAP_THRESHOLD) {
+        newGuides.push({ type: 'horizontal', position: canvasCenterY });
       }
       setGuides(newGuides);
+
+      // Distance lines to edges (only show if close to edge)
+      const DISTANCE_THRESHOLD = 50;
+      if (currentTop < DISTANCE_THRESHOLD && currentTop > 0) {
+        newDistanceLines.push({ x1: currentLeft + width/2, y1: 0, x2: currentLeft + width/2, y2: currentTop, distance: currentTop });
+      }
+      if (currentLeft < DISTANCE_THRESHOLD && currentLeft > 0) {
+        newDistanceLines.push({ x1: 0, y1: currentTop + height/2, x2: currentLeft, y2: currentTop + height/2, distance: currentLeft });
+      }
+      const rightEdge = currentLeft + width;
+      const distToRight = canvasRect.width - rightEdge;
+      if (distToRight < DISTANCE_THRESHOLD && distToRight > 0) {
+        newDistanceLines.push({ x1: rightEdge, y1: currentTop + height/2, x2: canvasRect.width, y2: currentTop + height/2, distance: Math.round(distToRight) });
+      }
+      const bottomEdge = currentTop + height;
+      const distToBottom = canvasRect.height - bottomEdge;
+      if (distToBottom < DISTANCE_THRESHOLD && distToBottom > 0) {
+        newDistanceLines.push({ x1: currentLeft + width/2, y1: bottomEdge, x2: currentLeft + width/2, y2: canvasRect.height, distance: Math.round(distToBottom) });
+      }
+      setDistanceLines(newDistanceLines);
     },
     drop: (item, monitor) => {
       setGuides([]);
@@ -347,7 +306,6 @@ const Canvas = () => {
       const canvasRect = canvasRef.current.getBoundingClientRect();
       let finalLeft, finalTop;
 
-      // Calculate final position relative to the panned canvas content
       if (item.id) {
         const delta = monitor.getDifferenceFromInitialOffset();
         if (!delta) return;
@@ -356,28 +314,24 @@ const Canvas = () => {
       } else {
         const clientOffset = monitor.getClientOffset();
         if (!clientOffset) return;
-        finalLeft = Math.round(clientOffset.x - canvasRect.left - viewOffset.x - (item.width / 2));
-        finalTop = Math.round(clientOffset.y - canvasRect.top - viewOffset.y - (item.height / 2));
+        finalLeft = Math.round(clientOffset.x - canvasRect.left - (item.width / 2));
+        finalTop = Math.round(clientOffset.y - canvasRect.top - (item.height / 2));
       }
 
       const { width, height } = item;
       const SNAP_THRESHOLD = 5;
+      const canvasCenterX = canvasRect.width / 2;
+      const canvasCenterY = canvasRect.height / 2;
+      const itemCenterX = finalLeft + width / 2;
+      const itemCenterY = finalTop + height / 2;
 
-      // --- Snap to Center (relative to canvas-area) ---
-      const itemCenterXInArea = finalLeft + viewOffset.x + width / 2;
-      const itemCenterYInArea = finalTop + viewOffset.y + height / 2;
-      const canvasCenterXInArea = canvasRect.width / 2;
-      const canvasCenterYInArea = canvasRect.height / 2;
-
-      // Snap horizontal
-      if (Math.abs(itemCenterXInArea - canvasCenterXInArea) < SNAP_THRESHOLD) {
-        finalLeft = Math.round(canvasCenterXInArea - viewOffset.x - width / 2);
+      // Snap to center
+      if (Math.abs(itemCenterX - canvasCenterX) < SNAP_THRESHOLD) {
+        finalLeft = Math.round(canvasCenterX - width / 2);
       }
-      // Snap vertical
-      if (Math.abs(itemCenterYInArea - canvasCenterYInArea) < SNAP_THRESHOLD) {
-        finalTop = Math.round(canvasCenterYInArea - viewOffset.y - height / 2);
+      if (Math.abs(itemCenterY - canvasCenterY) < SNAP_THRESHOLD) {
+        finalTop = Math.round(canvasCenterY - height / 2);
       }
-
 
       // Do not move item if it's a new one, as it will be handled by createItem
       if (item.id) { // Existing item
@@ -430,7 +384,7 @@ const Canvas = () => {
         }
       }
     },
-  }), [moveItem, setState, projectId, viewOffset]);
+  }), [moveItem, setState, projectId]);
 
   const [{ isOver: isTrashOver }, trashDrop] = useDrop(() => ({
     accept: [ItemTypes.TEXT, ItemTypes.SHAPE],
@@ -515,53 +469,44 @@ const Canvas = () => {
             <main
                 ref={node => { canvasRef.current = node; drop(node); }}
                 className="canvas-area"
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
+                onClick={handleCanvasClick}
                 data-testid="canvas-area"
             >
+                {selectedItem && (
+                    <div style={{...getToolbarStyle(), position: 'absolute', zIndex: 101}}>
+                        <StylingToolbar
+                            selectedItem={selectedItem}
+                            onStyleChange={handleStyleChange}
+                            onRotate={handleRotate}
+                        />
+                    </div>
+                )}
                 <AlignmentGuides guides={guides} />
                 <DistanceLines lines={distanceLines} />
-                <div
-                    ref={canvasContentRef}
-                    className="canvas-content"
-                    style={{ transform: `translate(${viewOffset.x}px, ${viewOffset.y}px)` }}
-                >
-                    {selectedItem && (
-                        <div style={{...getToolbarStyle(), position: 'absolute', zIndex: 101}}>
-                            <StylingToolbar
-                                selectedItem={selectedItem}
-                                onStyleChange={handleStyleChange}
-                                onRotate={handleRotate}
-                            />
-                        </div>
-                    )}
-                    {Object.values(items).map((item) => {
-                      if (item.type === ItemTypes.SHAPE) {
-                        return (
-                          <GeometricShape
-                            key={item.id}
-                            {...item}
-                            onResize={handleResize}
-                            onRotate={handleRotate}
-                            onSelect={handleSelect}
-                            isSelected={selectedItemId === item.id}
-                          />
-                        );
-                      }
-                      // Default to TextBox for legacy items or text items
-                      return (<TextBox
-                          key={item.id}
-                          {...item}
-                          onTextChange={handleTextChange}
-                          onResize={handleResize}
-                          onRotate={handleRotate}
-                          onSelect={handleSelect}
-                          isSelected={selectedItemId === item.id}
-                        />);
-                    })}
-                </div>
+                {Object.values(items).map((item) => {
+                  if (item.type === ItemTypes.SHAPE) {
+                    return (
+                      <GeometricShape
+                        key={item.id}
+                        {...item}
+                        onResize={handleResize}
+                        onRotate={handleRotate}
+                        onSelect={handleSelect}
+                        isSelected={selectedItemId === item.id}
+                      />
+                    );
+                  }
+                  // Default to TextBox for legacy items or text items
+                  return (<TextBox
+                      key={item.id}
+                      {...item}
+                      onTextChange={handleTextChange}
+                      onResize={handleResize}
+                      onRotate={handleRotate}
+                      onSelect={handleSelect}
+                      isSelected={selectedItemId === item.id}
+                    />);
+                })}
             </main>
         </div>
         {isDragging && (

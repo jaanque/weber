@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { FaFolder } from 'react-icons/fa';
 import './Projects.css';
 
 const Projects = ({ projects, loading }) => {
@@ -19,7 +20,8 @@ const Projects = ({ projects, loading }) => {
           {projects.map((project) => (
             <Link to={`/projects/${project.id}`} key={project.id} className="project-item-link">
               <div className="project-item">
-                {project.name}
+                <span className="project-icon"><FaFolder /></span>
+                <span className="project-name">{project.name}</span>
               </div>
             </Link>
           ))}
