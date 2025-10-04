@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDrag, useDrop } from 'react-dnd';
-import { FaFont, FaTrashAlt, FaArrowLeft, FaUndo, FaRedo } from 'react-icons/fa';
+import { FaFont, FaTrashAlt, FaArrowLeft, FaUndo, FaRedo, FaKeyboard } from 'react-icons/fa';
 import { ItemTypes } from './ItemTypes';
 import { supabase } from '../supabaseClient';
 import useUndoRedo from '../hooks/useUndoRedo';
@@ -11,10 +11,12 @@ import TextBox from './TextBox';
 import StylingToolbar from './StylingToolbar';
 import SaveStatus from './SaveStatus';
 import CustomDragLayer from './CustomDragLayer';
+import ShortcutsModal from './ShortcutsModal';
 import './Canvas.css';
 import './DistanceLines.css';
 import './StylingToolbar.css';
 import './SaveStatus.css';
+import './ShortcutsModal.css';
 
 // Debounce function to limit the rate of API calls
 const debounce = (func, delay) => {
@@ -67,6 +69,7 @@ const Canvas = () => {
   const [distanceLines, setDistanceLines] = useState([]);
   const [selectedItemId, setSelectedItemId] = useState(null);
   const [lastSaved, setLastSaved] = useState(null);
+  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const itemsRef = useRef(items);
   const canvasRef = useRef(null);
 
@@ -479,6 +482,7 @@ const Canvas = () => {
     <div className="canvas-container">
         <CustomDragLayer />
         <SaveStatus lastSaved={lastSaved} />
+        <ShortcutsModal isOpen={isShortcutsModalOpen} onClose={() => setIsShortcutsModalOpen(false)} />
         <header className="canvas-header">
             <button onClick={() => navigate('/')} className="back-button">
                 <FaArrowLeft />
@@ -490,6 +494,9 @@ const Canvas = () => {
                 </button>
                 <button onClick={redo} disabled={!canRedo} className="undo-redo-button" aria-label="Redo">
                     <FaRedo />
+                </button>
+                <button onClick={() => setIsShortcutsModalOpen(true)} className="undo-redo-button" aria-label="Show shortcuts">
+                    <FaKeyboard />
                 </button>
             </div>
         </header>

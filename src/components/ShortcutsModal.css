@@ -1,0 +1,37 @@
+/* Styles for the shortcuts modal */
+.shortcuts-modal .modal-body {
+  padding-top: 10px;
+}
+
+.shortcuts-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.shortcuts-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #e2e8f0; /* Light gray border */
+}
+
+.shortcuts-list li:last-child {
+  border-bottom: none;
+}
+
+.shortcut-key {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+  background-color: #f7fafc; /* Very light gray background */
+  border: 1px solid #e2e8f0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  color: #4a5568; /* Medium gray text */
+}
+
+.shortcut-action {
+  font-size: 1rem;
+  color: #2d3748; /* Darker gray text */
+}
