@@ -12,7 +12,7 @@ import {
 const FONT_FACES = ['Arial', 'Georgia', 'Helvetica', 'Times New Roman', 'Verdana'];
 
 const StylingToolbar = ({ selectedItem, onStyleChange, onRotate }) => {
-    if (!selectedItem) {
+    if (!selectedItem || selectedItem.type !== 'text') {
         return null;
     }
 
