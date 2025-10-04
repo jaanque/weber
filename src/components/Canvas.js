@@ -14,6 +14,7 @@ import StylingToolbar from './StylingToolbar';
 import SaveStatus from './SaveStatus';
 import CustomDragLayer from './CustomDragLayer';
 import ShortcutsModal from './ShortcutsModal';
+import UserProfile from './UserProfile';
 import './Canvas.css';
 import './DistanceLines.css';
 import './StylingToolbar.css';
@@ -22,6 +23,7 @@ import './ShortcutsModal.css';
 import './GeometricShape.css';
 import './ShapePicker.css';
 import './ShapeTool.css';
+import './UserProfile.css';
 
 // Debounce function to limit the rate of API calls
 const debounce = (func, delay) => {
@@ -418,102 +420,97 @@ const Canvas = () => {
 
   const selectedItem = selectedItemId ? items[selectedItemId] : null;
 
-  const getToolbarStyle = () => {
-      if (!selectedItem || !canvasRef.current) return {};
-
-      const canvasRect = canvasRef.current.getBoundingClientRect();
-      const itemTop = selectedItem.top;
-      const itemLeft = selectedItem.left;
-
-      const top = itemTop - 60; // Default position above the item
-      const left = itemLeft;
-
-      // Flip below if not enough space above
-      if (top < 0) {
-          return { top: itemTop + selectedItem.height + 10, left };
-      }
-      return { top, left };
-  };
-
   if (loading) {
     return <div>Loading...</div>;
   }
 
   return (
-    <div className="canvas-container">
-        <CustomDragLayer />
-        <SaveStatus lastSaved={lastSaved} />
-        <ShortcutsModal isOpen={isShortcutsModalOpen} onClose={() => setIsShortcutsModalOpen(false)} />
-        <header className="canvas-header">
-            <button onClick={() => navigate('/')} className="back-button">
-                <FaArrowLeft />
-            </button>
-            <h1>{projectName}</h1>
-            <div className="header-actions">
-                <button onClick={undo} disabled={!canUndo} className="undo-redo-button" aria-label="Undo">
-                    <FaUndo />
-                </button>
-                <button onClick={redo} disabled={!canRedo} className="undo-redo-button" aria-label="Redo">
-                    <FaRedo />
-                </button>
-                <button onClick={() => setIsShortcutsModalOpen(true)} className="undo-redo-button" aria-label="Show shortcuts">
-                    <FaKeyboard />
-                </button>
-            </div>
-        </header>
-        <div className="canvas-body">
-            <aside className="canvas-toolbar">
-                <DraggableTool type={ItemTypes.TEXT} icon={<FaFont />} text="Text" />
-                <ShapeTool />
-            </aside>
-            <main
-                ref={node => { canvasRef.current = node; drop(node); }}
-                className="canvas-area"
-                onClick={handleCanvasClick}
-                data-testid="canvas-area"
-            >
-                {selectedItem && (
-                    <div style={{...getToolbarStyle(), position: 'absolute', zIndex: 101}}>
-                        <StylingToolbar
-                            selectedItem={selectedItem}
-                            onStyleChange={handleStyleChange}
-                            onRotate={handleRotate}
-                        />
-                    </div>
-                )}
-                <AlignmentGuides guides={guides} />
-                <DistanceLines lines={distanceLines} />
-                {Object.values(items).map((item) => {
-                  if (item.type === ItemTypes.SHAPE) {
-                    return (
-                      <GeometricShape
-                        key={item.id}
-                        {...item}
-                        onResize={handleResize}
-                        onRotate={handleRotate}
-                        onSelect={handleSelect}
-                        isSelected={selectedItemId === item.id}
-                      />
-                    );
-                  }
-                  // Default to TextBox for legacy items or text items
-                  return (<TextBox
-                      key={item.id}
-                      {...item}
-                      onTextChange={handleTextChange}
-                      onResize={handleResize}
-                      onRotate={handleRotate}
-                      onSelect={handleSelect}
-                      isSelected={selectedItemId === item.id}
-                    />);
-                })}
-            </main>
-        </div>
-        {isDragging && (
-          <div ref={trashDrop} className={`trash-area ${isTrashOver ? 'hovered' : ''}`}>
-            <FaTrashAlt size={24} />
+    <div className="editor-layout">
+      <CustomDragLayer />
+      <SaveStatus lastSaved={lastSaved} />
+      <ShortcutsModal isOpen={isShortcutsModalOpen} onClose={() => setIsShortcutsModalOpen(false)} />
+
+      {/* New Header Structure */}
+      <header className="editor-header">
+        <div className="header-left">
+          <button onClick={() => navigate('/')} className="back-button">
+            <FaArrowLeft />
+          </button>
+          <div className="project-info">
+            <span className="project-name">{projectName}</span>
+            <span className="project-actions">Undo/Redo will be here</span>
           </div>
-        )}
+        </div>
+        <div className="header-center">
+          {selectedItem && (
+            <StylingToolbar
+              selectedItem={selectedItem}
+              onStyleChange={handleStyleChange}
+              onRotate={handleRotate}
+            />
+          )}
+        </div>
+        <div className="header-right">
+            <UserProfile />
+        </div>
+      </header>
+
+      <div className="editor-body">
+        {/* Left Sidebar for Tools */}
+        <aside className="editor-left-sidebar">
+          <DraggableTool type={ItemTypes.TEXT} icon={<FaFont />} text="Text" />
+          <ShapeTool />
+        </aside>
+
+        {/* Main Canvas Area */}
+        <main
+          ref={node => { canvasRef.current = node; drop(node); }}
+          className="canvas-area"
+          onClick={handleCanvasClick}
+          data-testid="canvas-area"
+        >
+          <AlignmentGuides guides={guides} />
+          <DistanceLines lines={distanceLines} />
+          {Object.values(items).map((item) => {
+            if (item.type === ItemTypes.SHAPE) {
+              return (
+                <GeometricShape
+                  key={item.id}
+                  {...item}
+                  onResize={handleResize}
+                  onRotate={handleRotate}
+                  onSelect={handleSelect}
+                  isSelected={selectedItemId === item.id}
+                />
+              );
+            }
+            return (
+              <TextBox
+                key={item.id}
+                {...item}
+                onTextChange={handleTextChange}
+                onResize={handleResize}
+                onRotate={handleRotate}
+                onSelect={handleSelect}
+                isSelected={selectedItemId === item.id}
+              />
+            );
+          })}
+        </main>
+      </div>
+
+      {/* Share Button */}
+      <div className="editor-footer">
+          <button className="share-button">Share</button>
+      </div>
+
+
+      {/* Trash Area */}
+      {isDragging && (
+        <div ref={trashDrop} className={`trash-area ${isTrashOver ? 'hovered' : ''}`}>
+          <FaTrashAlt size={24} />
+        </div>
+      )}
     </div>
   );
 };

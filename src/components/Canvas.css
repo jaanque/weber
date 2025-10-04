@@ -1,94 +1,90 @@
-.canvas-container {
+/* General Layout */
+.editor-layout {
     display: flex;
     flex-direction: column;
     height: 100vh;
-    background-color: #f8fafc; /* Light gray background */
-    color: #1a202c; /* Dark gray text */
+    width: 100vw;
+    background-color: #f0f2f5; /* A slightly darker background like Miro */
+    overflow: hidden;
 }
 
-.canvas-header {
+/* Header */
+.editor-header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    padding: 12px 24px;
+    padding: 8px 16px;
     background-color: #ffffff;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e0e0e0;
     flex-shrink: 0;
+    height: 60px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-.canvas-header h1 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin: 0;
-    padding: 0;
-    flex-grow: 1; /* Allow h1 to take up space */
-}
-
-.header-actions {
-    display: flex;
-    gap: 8px;
-}
-
-.undo-redo-button {
-    background: none;
-    border: 1px solid transparent;
-    cursor: pointer;
-    color: #718096; /* Gray icon color */
-    font-size: 18px;
-    padding: 4px;
-    border-radius: 4px;
+.header-left, .header-center, .header-right {
     display: flex;
     align-items: center;
+    flex: 1; /* Assign equal space */
+}
+
+.header-center {
     justify-content: center;
-    transition: background-color 0.2s, color 0.2s;
 }
 
-.undo-redo-button:hover:not(:disabled) {
-    background-color: #edf2f7; /* Light gray background on hover */
-    color: #2d3748; /* Darker gray text on hover */
-}
-
-.undo-redo-button:disabled {
-    color: #cbd5e0; /* Lighter gray when disabled */
-    cursor: not-allowed;
+.header-right {
+    justify-content: flex-end;
 }
 
 .back-button {
     background: none;
     border: none;
     cursor: pointer;
-    color: #4a5568;
     font-size: 20px;
+    color: #555;
     margin-right: 16px;
-    display: flex;
-    align-items: center;
-    transition: color 0.2s;
 }
 
-.back-button:hover {
-    color: #2b6cb0; /* Blue hover for interactive elements */
-}
-
-.canvas-body {
-    display: flex;
-    flex-grow: 1;
-    overflow: hidden; /* Prevent scrolling at the body level */
-}
-
-.canvas-toolbar {
-    width: 200px;
-    padding: 20px;
-    background-color: #ffffff;
-    border-right: 1px solid #e2e8f0;
-    flex-shrink: 0;
+.project-info {
     display: flex;
     flex-direction: column;
-    gap: 16px;
+}
+
+.project-name {
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.project-actions {
+    font-size: 12px;
+    color: #888;
+}
+
+/* Editor Body */
+.editor-body {
+    display: flex;
+    flex-grow: 1;
+    position: relative;
+}
+
+/* Left Sidebar for Tools */
+.editor-left-sidebar {
+    width: 60px;
+    background-color: #ffffff;
+    border-right: 1px solid #e0e0e0;
+    padding: 10px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    flex-shrink: 0;
 }
 
 .tool-item {
     display: flex;
+    justify-content: center;
     align-items: center;
-    padding: 10px 15px;
+    width: 40px;
+    height: 40px;
     border-radius: 8px;
     cursor: grab;
     background-color: #f7fafc;
@@ -97,32 +93,65 @@
 }
 
 .tool-item:hover {
-    background-color: #edf2f7;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    background-color: #eef2f7;
+    border-color: #c3dafe;
 }
 
 .tool-item:active {
     cursor: grabbing;
+    background-color: #dbeafe;
 }
 
 .tool-icon {
-    margin-right: 12px;
-    font-size: 18px;
+    font-size: 20px;
     color: #4a5568;
+    margin: 0; /* Remove margin for icon-only button */
 }
 
 .tool-text {
-    font-size: 1rem;
-    font-weight: 500;
+    display: none; /* Hide text as per design */
 }
 
+/* Canvas Area */
 .canvas-area {
     flex-grow: 1;
     position: relative;
-    overflow: auto; /* Allow scrolling within the canvas itself */
-    background-color: #f8fafc;
+    background-color: #f0f2f5;
+    /* Optional: Add a subtle grid pattern */
+    background-image:
+        linear-gradient(rgba(0, 0, 0, 0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.08) 1px, transparent 1px);
+    background-size: 20px 20px;
 }
 
+/* Footer & Share Button */
+.editor-footer {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.share-button {
+    background-color: #e9eaed;
+    color: #5f6368;
+    border: none;
+    padding: 12px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 24px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.share-button:hover {
+    background-color: #dfe1e5;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+
+/* Trash Area */
 .trash-area {
     position: fixed;
     bottom: 30px;
@@ -144,13 +173,4 @@
     background-color: rgba(239, 68, 68, 0.8);
     color: #ffffff;
     transform: translateX(-50%) scale(0.95);
-}
-
-/* Styles for dropped items are now in TextBox.js */
-.dropped-item {
-    /* Base styles can go here if needed */
-}
-
-.editable-textarea {
-    /* Base styles are in TextBox.js */
 }
