@@ -20,6 +20,36 @@
     font-weight: 600;
     margin: 0;
     padding: 0;
+    flex-grow: 1; /* Allow h1 to take up space */
+}
+
+.header-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.undo-redo-button {
+    background: none;
+    border: 1px solid transparent;
+    cursor: pointer;
+    color: #718096; /* Gray icon color */
+    font-size: 18px;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.undo-redo-button:hover:not(:disabled) {
+    background-color: #edf2f7; /* Light gray background on hover */
+    color: #2d3748; /* Darker gray text on hover */
+}
+
+.undo-redo-button:disabled {
+    color: #cbd5e0; /* Lighter gray when disabled */
+    cursor: not-allowed;
 }
 
 .back-button {

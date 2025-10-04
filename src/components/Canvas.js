@@ -1,9 +1,10 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDrag, useDrop } from 'react-dnd';
-import { FaFont, FaTrashAlt, FaArrowLeft } from 'react-icons/fa';
+import { FaFont, FaTrashAlt, FaArrowLeft, FaUndo, FaRedo } from 'react-icons/fa';
 import { ItemTypes } from './ItemTypes';
 import { supabase } from '../supabaseClient';
+import useUndoRedo from '../hooks/useUndoRedo';
 import AlignmentGuides from './AlignmentGuides';
 import DistanceLines from './DistanceLines';
 import TextBox from './TextBox';
@@ -49,7 +50,16 @@ const DraggableTool = ({ type, icon, text }) => {
 const Canvas = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
-  const [items, setItems] = useState({});
+  const {
+    state: items,
+    setState,
+    setPresent,
+    resetState,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+  } = useUndoRedo({});
   const [projectName, setProjectName] = useState('');
   const [loading, setLoading] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
@@ -64,6 +74,24 @@ const Canvas = () => {
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
+
+
+  // --- Keyboard Shortcuts for Undo/Redo ---
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === 'z') {
+        event.preventDefault();
+        undo();
+      } else if ((event.metaKey || event.ctrlKey) && (event.key === 'y' || (event.key === 'Z' && event.shiftKey))) {
+        event.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [undo, redo]);
 
 
   // --- Database Operations ---
@@ -117,40 +145,45 @@ const Canvas = () => {
       .single();
 
     if (error) {
-      console.error('Error creating item:', error);
-      // Remove the temporary item if creation fails
-      setItems((prev) => {
-        const newItems = { ...prev };
-        delete newItems[tempId];
-        return newItems;
-      });
-      return;
+        console.error('Error creating item:', error);
+        // Remove the temporary item if creation fails
+        setPresent(prev => {
+            const newItems = { ...prev };
+            delete newItems[tempId];
+            return newItems;
+        });
+        return;
     }
 
-    // Replace temporary item with the one from the database
-    setItems((prev) => {
-      const newItems = { ...prev };
-      delete newItems[tempId];
-      const dbItem = { ...data, left: data.left_pos, top: data.top_pos };
-      newItems[data.id] = dbItem;
-      return newItems;
+    // Replace temporary item with the one from the database and create history entry
+    setState(prev => {
+        const newItems = { ...prev };
+        delete newItems[tempId];
+        const dbItem = { ...data, left: data.left_pos, top: data.top_pos };
+        newItems[data.id] = dbItem;
+        return newItems;
     });
     setLastSaved(new Date());
-  }, [projectId]);
+  }, [projectId, setState, setPresent]);
 
   const deleteItem = async (id) => {
+    // Optimistically remove from UI and add to history
+    setState(prev => {
+        const newItems = {...prev};
+        delete newItems[id];
+        return newItems;
+    });
+
+    // Then delete from DB
     const { error } = await supabase
         .from('canvas_items')
         .delete()
         .eq('id', id);
+
     if (error) {
         console.error('Error deleting item:', error);
-    } else {
-        setItems(prev => {
-            const newItems = {...prev};
-            delete newItems[id];
-            return newItems;
-        });
+        // If DB delete fails, user can undo to get the item back.
+        // For a more robust solution, you might want to auto-revert.
     }
   };
 
@@ -188,7 +221,7 @@ const Canvas = () => {
           };
           return acc;
         }, {});
-        setItems(itemsMap);
+        resetState(itemsMap);
       }
       setLoading(false);
     };
@@ -199,15 +232,15 @@ const Canvas = () => {
 
   // --- Item Manipulation Callbacks ---
   const moveItem = useCallback((id, left, top) => {
-    setItems(prevItems => ({
+    setState(prevItems => ({
         ...prevItems,
         [id]: { ...prevItems[id], left, top }
     }));
     saveItem(id);
-  }, [saveItem]);
+  }, [saveItem, setState]);
 
   const handleTextChange = (id, newText) => {
-    setItems(prevItems => ({
+    setState(prevItems => ({
       ...prevItems,
       [id]: { ...prevItems[id], content: newText },
     }));
@@ -215,7 +248,7 @@ const Canvas = () => {
   };
 
   const handleResize = useCallback((id, width, height) => {
-    setItems(prevItems => {
+    setState(prevItems => {
         const item = prevItems[id];
         if (item && (item.width !== width || item.height !== height)) {
             return {
@@ -226,10 +259,10 @@ const Canvas = () => {
         return prevItems;
     });
     saveItem(id);
-  }, [saveItem]);
+  }, [saveItem, setState]);
 
   const handleRotate = useCallback((id, rotation) => {
-    setItems(prevItems => {
+    setState(prevItems => {
         const item = prevItems[id];
         if (item && item.rotation !== rotation) {
             return {
@@ -240,7 +273,7 @@ const Canvas = () => {
         return prevItems;
     });
     saveItem(id);
-  }, [saveItem]);
+  }, [saveItem, setState]);
 
   const handleSelect = (id) => {
     setSelectedItemId(id);
@@ -254,7 +287,7 @@ const Canvas = () => {
 
   const handleStyleChange = (newStyle) => {
     if (!selectedItemId) return;
-    setItems(prevItems => ({
+    setState(prevItems => ({
         ...prevItems,
         [selectedItemId]: { ...prevItems[selectedItemId], style: newStyle },
     }));
@@ -386,11 +419,13 @@ const Canvas = () => {
             textAlign: 'left',
           },
         };
-        setItems((prev) => ({ ...prev, [newId]: newItem }));
+        // Optimistic update without adding to history
+        setPresent((prev) => ({ ...prev, [newId]: newItem }));
+        // Create in DB and update state with real ID, which creates the history entry
         createItem(newItem);
       }
     },
-  }), [moveItem, createItem]);
+  }), [moveItem, createItem, setPresent]);
 
   const [{ isOver: isTrashOver }, trashDrop] = useDrop(() => ({
     accept: ItemTypes.TEXT,
@@ -449,6 +484,14 @@ const Canvas = () => {
                 <FaArrowLeft />
             </button>
             <h1>{projectName}</h1>
+            <div className="header-actions">
+                <button onClick={undo} disabled={!canUndo} className="undo-redo-button" aria-label="Undo">
+                    <FaUndo />
+                </button>
+                <button onClick={redo} disabled={!canRedo} className="undo-redo-button" aria-label="Redo">
+                    <FaRedo />
+                </button>
+            </div>
         </header>
         <div className="canvas-body">
             <aside className="canvas-toolbar">
@@ -486,7 +529,7 @@ const Canvas = () => {
         </div>
         {isDragging && (
           <div ref={trashDrop} className={`trash-area ${isTrashOver ? 'hovered' : ''}`}>
-            <FaTrashAlt size={32} />
+            <FaTrashAlt size={24} />
           </div>
         )}
     </div>
