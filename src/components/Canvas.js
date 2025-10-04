@@ -54,14 +54,16 @@ const Canvas = () => {
   const navigate = useNavigate();
   const {
     state: items,
+    past,
+    future,
     setState,
     setPresent,
-    resetState,
+    resetHistory,
     undo,
     redo,
     canUndo,
     canRedo,
-  } = useUndoRedo({});
+  } = useUndoRedo();
   const [projectName, setProjectName] = useState('');
   const [loading, setLoading] = useState(true);
   const [isDragging, setIsDragging] = useState(false);
@@ -98,98 +100,25 @@ const Canvas = () => {
 
 
   // --- Database Operations ---
-  const saveItem = useCallback(
-    debounce(async (itemId) => {
-      const itemToSave = itemsRef.current[itemId];
-      if (!itemToSave) return;
-
-      const { id, left, top, content, width, height, style, rotation } = itemToSave;
-      const updateData = {
-          left_pos: left,
-          top_pos: top,
-          content,
-          width,
-          height,
-          style,
-          rotation
-      };
-
+  const saveHistory = useCallback(
+    debounce(async (currentHistory) => {
       const { error } = await supabase
-        .from('canvas_items')
-        .update(updateData)
-        .eq('id', id);
+        .from('projects')
+        .update({
+          history_past: currentHistory.past,
+          history_present: currentHistory.present,
+          history_future: currentHistory.future,
+        })
+        .eq('id', projectId);
 
       if (error) {
-        console.error('Error updating item:', error);
+        console.error('Error saving history:', error);
       } else {
         setLastSaved(new Date());
       }
-    }, 1000),
-    []
+    }, 2000),
+    [projectId]
   );
-
-  const createItem = useCallback(async (item) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { id: tempId, left, top, ...rest } = item;
-    const insertData = {
-      ...rest,
-      project_id: projectId,
-      user_id: user.id,
-      left_pos: left,
-      top_pos: top,
-    };
-
-    const { data, error } = await supabase
-      .from('canvas_items')
-      .insert(insertData)
-      .select()
-      .single();
-
-    if (error) {
-        console.error('Error creating item:', error);
-        // Remove the temporary item if creation fails
-        setPresent(prev => {
-            const newItems = { ...prev };
-            delete newItems[tempId];
-            return newItems;
-        });
-        return;
-    }
-
-    // Replace temporary item with the one from the database and create history entry
-    setState(prev => {
-        const newItems = { ...prev };
-        delete newItems[tempId];
-        const dbItem = { ...data, left: data.left_pos, top: data.top_pos };
-        newItems[data.id] = dbItem;
-        return newItems;
-    });
-    setLastSaved(new Date());
-  }, [projectId, setState, setPresent]);
-
-  const deleteItem = async (id) => {
-    // Optimistically remove from UI and add to history
-    setState(prev => {
-        const newItems = {...prev};
-        delete newItems[id];
-        return newItems;
-    });
-
-    // Then delete from DB
-    const { error } = await supabase
-        .from('canvas_items')
-        .delete()
-        .eq('id', id);
-
-    if (error) {
-        console.error('Error deleting item:', error);
-        // If DB delete fails, user can undo to get the item back.
-        // For a more robust solution, you might want to auto-revert.
-    }
-  };
-
 
   // --- Fetch Initial Data ---
   useEffect(() => {
@@ -197,40 +126,45 @@ const Canvas = () => {
       setLoading(true);
       const { data: projectData, error: projectError } = await supabase
         .from('projects')
-        .select('name')
+        .select('name, history_past, history_present, history_future')
         .eq('id', projectId)
         .single();
 
       if (projectError) {
         console.error('Error fetching project:', projectError);
         setProjectName('Project Not Found');
-      } else if (projectData) {
-        setProjectName(projectData.name);
+        setLoading(false);
+        return;
       }
 
-      const { data: itemsData, error: itemsError } = await supabase
-        .from('canvas_items')
-        .select('*')
-        .eq('project_id', projectId);
-
-      if (itemsError) {
-        console.error('Error fetching items:', itemsError);
-      } else {
-        const itemsMap = itemsData.reduce((acc, item) => {
-          acc[item.id] = {
-              ...item,
-              left: item.left_pos,
-              top: item.top_pos,
-          };
-          return acc;
-        }, {});
-        resetState(itemsMap);
+      if (projectData) {
+        setProjectName(projectData.name);
+        const initialHistory = {
+          past: projectData.history_past || [],
+          present: projectData.history_present || {},
+          future: projectData.history_future || [],
+        };
+        resetHistory(initialHistory);
       }
       setLoading(false);
     };
 
     fetchProjectAndItems();
-  }, [projectId]);
+  }, [projectId, resetHistory]);
+
+  // --- Auto-save history on change ---
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    // Don't save on initial load
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    // Don't save while loading data
+    if (!loading) {
+      saveHistory({ past, present: items, future });
+    }
+  }, [items, past, future, loading, saveHistory]);
 
 
   // --- Item Manipulation Callbacks ---
@@ -239,15 +173,13 @@ const Canvas = () => {
         ...prevItems,
         [id]: { ...prevItems[id], left, top }
     }));
-    saveItem(id);
-  }, [saveItem, setState]);
+  }, [setState]);
 
   const handleTextChange = (id, newText) => {
     setState(prevItems => ({
       ...prevItems,
       [id]: { ...prevItems[id], content: newText },
     }));
-    saveItem(id);
   };
 
   const handleResize = useCallback((id, width, height) => {
@@ -261,8 +193,7 @@ const Canvas = () => {
         }
         return prevItems;
     });
-    saveItem(id);
-  }, [saveItem, setState]);
+  }, [setState]);
 
   const handleRotate = useCallback((id, rotation) => {
     setState(prevItems => {
@@ -275,8 +206,7 @@ const Canvas = () => {
         }
         return prevItems;
     });
-    saveItem(id);
-  }, [saveItem, setState]);
+  }, [setState]);
 
   const handleSelect = (id) => {
     setSelectedItemId(id);
@@ -294,7 +224,6 @@ const Canvas = () => {
         ...prevItems,
         [selectedItemId]: { ...prevItems[selectedItemId], style: newStyle },
     }));
-    saveItem(selectedItemId);
   };
 
   // --- Drag and Drop Logic ---
@@ -400,12 +329,15 @@ const Canvas = () => {
       }
 
       // Do not move item if it's a new one, as it will be handled by createItem
-      if (item.id && !String(item.id).startsWith('temp-')) {
+      if (item.id) { // Existing item
         moveItem(item.id, finalLeft, finalTop);
-      } else if (!item.id) {
-        const newId = `temp-${Date.now()}`;
+      } else { // New item
+        // For new items, we generate a real UUID locally.
+        // This avoids the complexity of temp IDs and DB round-trips before creating history.
+        const newId = crypto.randomUUID();
         const newItem = {
           id: newId,
+          project_id: projectId,
           left: finalLeft,
           top: finalTop,
           content: 'Text area',
@@ -422,18 +354,20 @@ const Canvas = () => {
             textAlign: 'left',
           },
         };
-        // Optimistic update without adding to history
-        setPresent((prev) => ({ ...prev, [newId]: newItem }));
-        // Create in DB and update state with real ID, which creates the history entry
-        createItem(newItem);
+        setState(prev => ({ ...prev, [newId]: newItem }));
       }
     },
-  }), [moveItem, createItem, setPresent]);
+  }), [moveItem, setState, projectId]);
 
   const [{ isOver: isTrashOver }, trashDrop] = useDrop(() => ({
     accept: ItemTypes.TEXT,
     drop: (item) => {
-      deleteItem(item.id);
+      // Optimistically remove from UI and add to history
+      setState(prev => {
+          const newItems = {...prev};
+          delete newItems[item.id];
+          return newItems;
+      });
     },
     collect: (monitor) => ({
       isOver: !!monitor.isOver(),

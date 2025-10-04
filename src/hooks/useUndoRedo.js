@@ -1,10 +1,10 @@
 import { useState, useCallback } from 'react';
 
-const useUndoRedo = (initialState) => {
+const useUndoRedo = (initialHistory = {}) => {
   const [history, setHistory] = useState({
-    past: [],
-    present: initialState,
-    future: [],
+    past: initialHistory.past || [],
+    present: initialHistory.present || {},
+    future: initialHistory.future || [],
   });
 
   const canUndo = history.past.length > 0;
@@ -57,19 +57,21 @@ const useUndoRedo = (initialState) => {
     });
   }, []);
 
-  const resetState = useCallback((newInitialState) => {
+  const resetHistory = useCallback((newInitialHistory) => {
     setHistory({
-      past: [],
-      present: newInitialState,
-      future: [],
+      past: newInitialHistory.past || [],
+      present: newInitialHistory.present || {},
+      future: newInitialHistory.future || [],
     });
   }, []);
 
   return {
     state: history.present,
+    past: history.past,
+    future: history.future,
     setState,
     setPresent,
-    resetState,
+    resetHistory,
     undo,
     redo,
     canUndo,
