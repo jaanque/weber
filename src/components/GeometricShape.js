@@ -4,42 +4,63 @@ import { getEmptyImage } from 'react-dnd-html5-backend';
 import { Resizable } from 're-resizable';
 import { ItemTypes } from './ItemTypes';
 import { FaArrowsAlt, FaSyncAlt } from 'react-icons/fa';
-import './TextBox.css';
+import './GeometricShape.css';
 
-const TextBox = ({ id, left, top, width, height, rotation = 0, content, style = {}, onTextChange, onResize, onRotate, onSelect, isSelected }) => {
-    const textareaRef = useRef(null);
+const ShapeContent = ({ shapeType, width, height, style }) => {
+  const commonProps = {
+    fill: style?.color || '#cccccc',
+    stroke: style?.borderColor || '#333333',
+    strokeWidth: style?.borderWidth || 2,
+  };
+
+  switch (shapeType) {
+    case 'rectangle':
+      return <rect x="0" y="0" width={width} height={height} {...commonProps} />;
+    case 'circle':
+      return <circle cx={width / 2} cy={height / 2} r={Math.min(width, height) / 2} {...commonProps} />;
+    case 'triangle':
+      return <polygon points={`${width / 2},0 ${width},${height} 0,${height}`} {...commonProps} />;
+    case 'oval':
+        return <ellipse cx={width / 2} cy={height / 2} rx={width / 2} ry={height/2} {...commonProps} />;
+    case 'star':
+        // A bit more complex to scale a star correctly within the bounding box
+        const starPoints = (w, h) => {
+            const R = Math.min(w, h) / 2;
+            const r = R / 2;
+            const cx = w / 2;
+            const cy = h / 2;
+            let points = "";
+            for (let i = 0; i < 5; i++) {
+                points += `${cx + R * Math.cos(2 * Math.PI * i / 5 - Math.PI/2)},${cy + R * Math.sin(2 * Math.PI * i / 5 - Math.PI/2)} `;
+                points += `${cx + r * Math.cos(2 * Math.PI * (i + 0.5) / 5 - Math.PI/2)},${cy + r * Math.sin(2 * Math.PI * (i + 0.5) / 5 - Math.PI/2)} `;
+            }
+            return points;
+        };
+        return <polygon points={starPoints(width, height)} {...commonProps} />;
+    default:
+      return <rect x="0" y="0" width={width} height={height} {...commonProps} />;
+  }
+};
+
+
+const GeometricShape = ({ id, left, top, width, height, rotation = 0, shapeType, style = {}, onResize, onRotate, onSelect, isSelected }) => {
     const boxRef = useRef(null);
-    const [isEditing, setIsEditing] = useState(false);
     const [isResizing, setIsResizing] = useState(false);
     const [isRotating, setIsRotating] = useState(false);
     const [lockAspectRatio, setLockAspectRatio] = useState(false);
 
     const [{ isDragging }, drag, dragPreview] = useDrag(() => ({
-        type: ItemTypes.TEXT,
-        item: { id, left, top, type: ItemTypes.TEXT, width, height, content, style, rotation },
-        canDrag: !isEditing && !isResizing && !isRotating,
+        type: ItemTypes.SHAPE,
+        item: { id, left, top, type: ItemTypes.SHAPE, width, height, shapeType, style, rotation },
+        canDrag: !isResizing && !isRotating,
         collect: (monitor) => ({
             isDragging: monitor.isDragging(),
         }),
-    }), [id, left, top, width, height, isEditing, isResizing, isRotating, content, style, rotation]);
+    }), [id, left, top, width, height, isResizing, isRotating, shapeType, style, rotation]);
 
     useEffect(() => {
         dragPreview(getEmptyImage(), { captureDraggingState: true });
     }, [dragPreview]);
-
-    const handleTextChange = (e) => {
-        onTextChange(id, e.target.value);
-    };
-
-    const handleDoubleClick = () => {
-        setIsEditing(true);
-        textareaRef.current?.focus();
-        textareaRef.current?.select();
-    };
-
-    const handleBlur = () => {
-        setIsEditing(false);
-    };
 
     const handleClick = (e) => {
         e.stopPropagation();
@@ -90,8 +111,8 @@ const TextBox = ({ id, left, top, width, height, rotation = 0, content, style = 
         position: 'absolute',
         left,
         top,
-        zIndex: isSelected ? 1 : 'auto',
-        opacity: isDragging ? 0.4 : 1,
+        zIndex: isSelected ? 10 : 'auto',
+        opacity: isDragging ? 0.5 : 1,
         transform: `rotate(${rotation}deg)`,
     };
 
@@ -99,32 +120,14 @@ const TextBox = ({ id, left, top, width, height, rotation = 0, content, style = 
         border: isSelected ? '2px solid #3b82f6' : '2px solid transparent',
         boxSizing: 'border-box',
         transition: 'border-color 0.2s',
-    };
-
-    const textStyle = {
-        width: '100%',
-        height: '100%',
-        border: 'none',
-        padding: '8px',
-        margin: '0',
-        background: 'transparent',
-        resize: 'none',
-        outline: 'none',
-        boxSizing: 'border-box',
-        overflow: 'hidden',
-        cursor: isEditing ? 'text' : 'default',
-        color: style.color || '#000000',
-        fontFamily: style.fontFamily || 'Arial',
-        fontSize: style.fontSize || '16px',
-        fontWeight: style.fontWeight || 'normal',
-        fontStyle: style.fontStyle || 'normal',
-        textDecoration: style.textDecoration || 'none',
-        textAlign: style.textAlign || 'left',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
     };
 
     return (
-        <div ref={boxRef} style={containerStyle}>
-            {isSelected && !isEditing && (
+        <div ref={boxRef} style={containerStyle} onClick={handleClick}>
+            {isSelected && (
                 <>
                     <div
                         ref={drag}
@@ -149,10 +152,9 @@ const TextBox = ({ id, left, top, width, height, rotation = 0, content, style = 
                 onResizeStart={handleResizeStart}
                 onResizeStop={handleResizeStop}
                 lockAspectRatio={lockAspectRatio}
-                minConstraints={[100, 50]}
-                maxConstraints={[800, 600]}
+                minConstraints={[30, 30]}
                 handleComponent={
-                    isSelected && !isEditing ? {
+                    isSelected ? {
                         top: <div className="resizable-handle resizable-handle-top" />,
                         right: <div className="resizable-handle resizable-handle-right" />,
                         bottom: <div className="resizable-handle resizable-handle-bottom" />,
@@ -164,26 +166,17 @@ const TextBox = ({ id, left, top, width, height, rotation = 0, content, style = 
                     } : {}
                 }
             >
-                <div
-                    className="dropped-item"
-                    onClick={handleClick}
-                    onDoubleClick={handleDoubleClick}
-                    style={{ width: '100%', height: '100%'}}
+                <svg
+                    width="100%"
+                    height="100%"
+                    preserveAspectRatio="none"
+                    style={{ overflow: 'visible' }}
                 >
-                    <textarea
-                        ref={textareaRef}
-                        value={content || ''}
-                        onChange={handleTextChange}
-                        onBlur={handleBlur}
-                        className="editable-textarea"
-                        style={textStyle}
-                        spellCheck="false"
-                        readOnly={!isEditing}
-                    />
-                </div>
+                  <ShapeContent shapeType={shapeType} width={width} height={height} style={style} />
+                </svg>
             </Resizable>
         </div>
     );
 };
 
-export default TextBox;
+export default GeometricShape;

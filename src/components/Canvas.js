@@ -8,6 +8,8 @@ import useUndoRedo from '../hooks/useUndoRedo';
 import AlignmentGuides from './AlignmentGuides';
 import DistanceLines from './DistanceLines';
 import TextBox from './TextBox';
+import GeometricShape from './GeometricShape';
+import ShapeTool from './ShapeTool';
 import StylingToolbar from './StylingToolbar';
 import SaveStatus from './SaveStatus';
 import CustomDragLayer from './CustomDragLayer';
@@ -17,6 +19,9 @@ import './DistanceLines.css';
 import './StylingToolbar.css';
 import './SaveStatus.css';
 import './ShortcutsModal.css';
+import './GeometricShape.css';
+import './ShapePicker.css';
+import './ShapeTool.css';
 
 // Debounce function to limit the rate of API calls
 const debounce = (func, delay) => {
@@ -228,7 +233,7 @@ const Canvas = () => {
 
   // --- Drag and Drop Logic ---
   const [, drop] = useDrop(() => ({
-    accept: ItemTypes.TEXT,
+    accept: [ItemTypes.TEXT, ItemTypes.SHAPE],
     hover(item, monitor) {
       if (!canvasRef.current || !monitor.isOver({ shallow: true })) {
         setGuides([]);
@@ -332,35 +337,57 @@ const Canvas = () => {
       if (item.id) { // Existing item
         moveItem(item.id, finalLeft, finalTop);
       } else { // New item
-        // For new items, we generate a real UUID locally.
-        // This avoids the complexity of temp IDs and DB round-trips before creating history.
         const newId = crypto.randomUUID();
-        const newItem = {
-          id: newId,
-          project_id: projectId,
-          left: finalLeft,
-          top: finalTop,
-          content: 'Text area',
-          width: item.width,
-          height: item.height,
-          rotation: 0,
-          style: {
-            fontSize: '16px',
-            fontWeight: 'normal',
-            fontStyle: 'normal',
-            textDecoration: 'none',
-            fontFamily: 'Arial',
-            color: '#000000',
-            textAlign: 'left',
-          },
-        };
-        setState(prev => ({ ...prev, [newId]: newItem }));
+        let newItem;
+
+        if (item.type === ItemTypes.TEXT) {
+            newItem = {
+              id: newId,
+              type: ItemTypes.TEXT,
+              project_id: projectId,
+              left: finalLeft,
+              top: finalTop,
+              content: 'Text area',
+              width: item.width,
+              height: item.height,
+              rotation: 0,
+              style: {
+                fontSize: '16px',
+                fontWeight: 'normal',
+                fontStyle: 'normal',
+                textDecoration: 'none',
+                fontFamily: 'Arial',
+                color: '#000000',
+                textAlign: 'left',
+              },
+            };
+        } else if (item.type === ItemTypes.SHAPE) {
+            newItem = {
+                id: newId,
+                type: ItemTypes.SHAPE,
+                shapeType: item.shapeType,
+                project_id: projectId,
+                left: finalLeft,
+                top: finalTop,
+                width: item.width,
+                height: item.height,
+                rotation: 0,
+                style: {
+                    color: '#cccccc',
+                    borderColor: '#333333',
+                    borderWidth: 2,
+                },
+            };
+        }
+        if (newItem) {
+            setState(prev => ({ ...prev, [newId]: newItem }));
+        }
       }
     },
   }), [moveItem, setState, projectId]);
 
   const [{ isOver: isTrashOver }, trashDrop] = useDrop(() => ({
-    accept: ItemTypes.TEXT,
+    accept: [ItemTypes.TEXT, ItemTypes.SHAPE],
     drop: (item) => {
       // Optimistically remove from UI and add to history
       setState(prev => {
@@ -437,6 +464,7 @@ const Canvas = () => {
         <div className="canvas-body">
             <aside className="canvas-toolbar">
                 <DraggableTool type={ItemTypes.TEXT} icon={<FaFont />} text="Text" />
+                <ShapeTool />
             </aside>
             <main
                 ref={node => { canvasRef.current = node; drop(node); }}
@@ -455,17 +483,30 @@ const Canvas = () => {
                 )}
                 <AlignmentGuides guides={guides} />
                 <DistanceLines lines={distanceLines} />
-                {Object.values(items).map((item) => (
-                  <TextBox
-                    key={item.id}
-                    {...item}
-                    onTextChange={handleTextChange}
-                    onResize={handleResize}
-                    onRotate={handleRotate}
-                    onSelect={handleSelect}
-                    isSelected={selectedItemId === item.id}
-                  />
-                ))}
+                {Object.values(items).map((item) => {
+                  if (item.type === ItemTypes.SHAPE) {
+                    return (
+                      <GeometricShape
+                        key={item.id}
+                        {...item}
+                        onResize={handleResize}
+                        onRotate={handleRotate}
+                        onSelect={handleSelect}
+                        isSelected={selectedItemId === item.id}
+                      />
+                    );
+                  }
+                  // Default to TextBox for legacy items or text items
+                  return (<TextBox
+                      key={item.id}
+                      {...item}
+                      onTextChange={handleTextChange}
+                      onResize={handleResize}
+                      onRotate={handleRotate}
+                      onSelect={handleSelect}
+                      isSelected={selectedItemId === item.id}
+                    />);
+                })}
             </main>
         </div>
         {isDragging && (
