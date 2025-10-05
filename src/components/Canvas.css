@@ -87,28 +87,37 @@
     display: none; /* Hide text as per design */
 }
 
-/* Trash Area */
+.bottom-left-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 90px; /* Positioned next to the main toolbar */
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 90;
+}
+
+/* Trash Area - Repositioned and restyled */
 .trash-area {
-    position: fixed;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: rgba(239, 68, 68, 0.1);
-    color: #ef4444;
-    border: 2px dashed #ef4444;
+    background-color: white;
+    color: #555;
+    border: 1px solid #ccc;
     border-radius: 12px;
-    padding: 20px 40px;
+    padding: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
-    transition: background-color 0.2s, color 0.2s, transform 0.2s;
+    transition: background-color 0.2s, color 0.2s, transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .trash-area.hovered {
-    background-color: rgba(239, 68, 68, 0.8);
+    background-color: #ef4444;
     color: #ffffff;
-    transform: translateX(-50%) scale(0.95);
+    border-color: #ef4444;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    transform: scale(1.05);
 }
 
 /* Remove old layout styles that are no longer used */
