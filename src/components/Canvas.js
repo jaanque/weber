@@ -578,12 +578,8 @@ const Canvas = () => {
 
   return (
     <div
-      ref={node => {
-        canvasRef.current = node;
-        drop(node);
-      }}
+      ref={canvasRef}
       className="canvas-container" // This will be styled as full-screen
-      onClick={handleCanvasClick}
       data-testid="canvas-area"
       onWheel={handleWheel}
     >
@@ -651,8 +647,10 @@ const Canvas = () => {
       )}
 
       <div
+        ref={drop}
         className="canvas-viewport"
         style={{ transform: `translate(${viewTransform.x}px, ${viewTransform.y}px) scale(${viewTransform.scale})`}}
+        onClick={handleCanvasClick}
       >
         <AlignmentGuides guides={guides} />
         <DistanceLines lines={distanceLines} />
