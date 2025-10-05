@@ -6,7 +6,7 @@ import { ItemTypes } from './ItemTypes';
 import { FaArrowsAlt, FaSyncAlt } from 'react-icons/fa';
 import './TextBox.css';
 
-const TextBox = ({ id, left, top, width, height, rotation = 0, content, style = {}, onTextChange, onResize, onRotate, onSelect, isSelected }) => {
+const TextBox = ({ id, left, top, width, height, rotation = 0, zIndex = 0, content, style = {}, onTextChange, onResize, onRotate, onSelect, isSelected }) => {
     const textareaRef = useRef(null);
     const boxRef = useRef(null);
     const [isEditing, setIsEditing] = useState(false);
@@ -90,7 +90,7 @@ const TextBox = ({ id, left, top, width, height, rotation = 0, content, style = 
         position: 'absolute',
         left,
         top,
-        zIndex: isSelected ? 1 : 'auto',
+        zIndex: isSelected ? zIndex + 1 : zIndex,
         opacity: isDragging ? 0.4 : 1,
         transform: `rotate(${rotation}deg)`,
     };

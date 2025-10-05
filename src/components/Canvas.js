@@ -84,6 +84,7 @@ const Canvas = () => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [viewTransform, setViewTransform] = useState({ scale: 1, x: 0, y: 0 });
   const [toolMode, setToolMode] = useState('select'); // 'select' or 'pan'
+  const [nextZIndex, setNextZIndex] = useState(1);
   const panState = useRef({ isSpaceDown: false, isPanning: false, start: { x: 0, y: 0 } });
   const itemsRef = useRef(items);
   const canvasRef = useRef(null);
@@ -174,6 +175,17 @@ const Canvas = () => {
           present: projectData.history_present || {},
           future: projectData.history_future || [],
         };
+        const itemsWithZIndex = {};
+        let maxZ = 0;
+        Object.entries(initialHistory.present).forEach(([id, item], index) => {
+          const zIndex = item.zIndex || index + 1;
+          itemsWithZIndex[id] = { ...item, zIndex };
+          if (zIndex > maxZ) {
+            maxZ = zIndex;
+          }
+        });
+        initialHistory.present = itemsWithZIndex;
+        setNextZIndex(maxZ + 1);
         resetHistory(initialHistory);
       }
       setLoading(false);
@@ -254,6 +266,24 @@ const Canvas = () => {
     setState(prevItems => ({
         ...prevItems,
         [selectedItemId]: { ...prevItems[selectedItemId], style: newStyle },
+    }));
+  };
+
+  const handleBringToFront = () => {
+    if (!selectedItemId) return;
+    setState(prevItems => ({
+      ...prevItems,
+      [selectedItemId]: { ...prevItems[selectedItemId], zIndex: nextZIndex },
+    }));
+    setNextZIndex(prevZ => prevZ + 1);
+  };
+
+  const handleSendToBack = () => {
+    if (!selectedItemId) return;
+    const minZIndex = Math.min(...Object.values(items).map(item => item.zIndex || 0));
+    setState(prevItems => ({
+      ...prevItems,
+      [selectedItemId]: { ...prevItems[selectedItemId], zIndex: minZIndex - 1 },
     }));
   };
 
@@ -434,16 +464,17 @@ const Canvas = () => {
             const newId = crypto.randomUUID();
             let newItem;
             if (item.type === ItemTypes.TEXT) {
-                newItem = { id: newId, type: ItemTypes.TEXT, project_id: projectId, left: finalLeft, top: finalTop, content: 'Text area', width: item.width, height: item.height, rotation: 0, style: { fontSize: '16px', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', fontFamily: 'Arial', color: '#000000', textAlign: 'left' } };
+                newItem = { id: newId, type: ItemTypes.TEXT, project_id: projectId, left: finalLeft, top: finalTop, content: 'Text area', width: item.width, height: item.height, rotation: 0, zIndex: nextZIndex, style: { fontSize: '16px', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', fontFamily: 'Arial', color: '#000000', textAlign: 'left' } };
             } else if (item.type === ItemTypes.SHAPE) {
-                newItem = { id: newId, type: ItemTypes.SHAPE, shapeType: item.shapeType, project_id: projectId, left: finalLeft, top: finalTop, width: item.width, height: item.height, rotation: 0, style: { color: '#cccccc', borderColor: '#333333', borderWidth: 2 } };
+                newItem = { id: newId, type: ItemTypes.SHAPE, shapeType: item.shapeType, project_id: projectId, left: finalLeft, top: finalTop, width: item.width, height: item.height, rotation: 0, zIndex: nextZIndex, style: { color: '#cccccc', borderColor: '#333333', borderWidth: 2 } };
             }
             if (newItem) {
                 setState(prev => ({ ...prev, [newId]: newItem }));
+                setNextZIndex(prevZ => prevZ + 1);
             }
         }
     },
-  }), [items, moveItem, setState, projectId, toolMode, viewTransform]);
+  }), [items, moveItem, setState, projectId, toolMode, viewTransform, nextZIndex]);
 
   const [{ isOver: isTrashOver }, trashDrop] = useDrop(() => ({
     accept: [ItemTypes.TEXT, ItemTypes.SHAPE],
@@ -642,6 +673,8 @@ const Canvas = () => {
             selectedItem={selectedItem}
             onStyleChange={handleStyleChange}
             onRotate={handleRotate}
+            onBringToFront={handleBringToFront}
+            onSendToBack={handleSendToBack}
           />
         </div>
       )}
@@ -654,7 +687,7 @@ const Canvas = () => {
       >
         <AlignmentGuides guides={guides} />
         <DistanceLines lines={distanceLines} />
-        {Object.values(items).map((item) => {
+        {Object.values(items).sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0)).map((item) => {
           if (item.type === ItemTypes.SHAPE) {
             return (
               <GeometricShape

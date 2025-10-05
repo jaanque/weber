@@ -6,12 +6,14 @@ import {
     FaUnderline,
     FaAlignLeft,
     FaAlignCenter,
-    FaAlignRight
+    FaAlignRight,
+    FaAngleDoubleUp,
+    FaAngleDoubleDown
 } from 'react-icons/fa';
 
 const FONT_FACES = ['Arial', 'Georgia', 'Helvetica', 'Times New Roman', 'Verdana'];
 
-const StylingToolbar = ({ selectedItem, onStyleChange, onRotate }) => {
+const StylingToolbar = ({ selectedItem, onStyleChange, onRotate, onBringToFront, onSendToBack }) => {
     if (!selectedItem) {
         return null;
     }
@@ -134,6 +136,24 @@ const StylingToolbar = ({ selectedItem, onStyleChange, onRotate }) => {
                 aria-pressed={style.textAlign === 'right'}
             >
                 <FaAlignRight />
+            </button>
+
+            <div className="toolbar-divider"></div>
+
+            {/* Stacking Order Buttons */}
+            <button
+                onClick={onBringToFront}
+                title="Bring to Front"
+                aria-label="Bring to Front"
+            >
+                <FaAngleDoubleUp />
+            </button>
+            <button
+                onClick={onSendToBack}
+                title="Send to Back"
+                aria-label="Send to Back"
+            >
+                <FaAngleDoubleDown />
             </button>
         </div>
     );

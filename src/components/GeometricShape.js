@@ -44,7 +44,7 @@ const ShapeContent = ({ shapeType, width, height, style }) => {
 };
 
 
-const GeometricShape = ({ id, left, top, width, height, rotation = 0, shapeType, style = {}, onResize, onRotate, onSelect, isSelected }) => {
+const GeometricShape = ({ id, left, top, width, height, rotation = 0, zIndex = 0, shapeType, style = {}, onResize, onRotate, onSelect, isSelected }) => {
     const boxRef = useRef(null);
     const [isResizing, setIsResizing] = useState(false);
     const [isRotating, setIsRotating] = useState(false);
@@ -130,7 +130,7 @@ const GeometricShape = ({ id, left, top, width, height, rotation = 0, shapeType,
         transition: { type: 'spring', stiffness: 300, damping: 30 },
         style: {
             position: 'absolute',
-            zIndex: isSelected ? 10 : 'auto',
+            zIndex: isSelected ? zIndex + 1 : zIndex,
         },
     };
 
