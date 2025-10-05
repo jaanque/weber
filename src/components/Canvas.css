@@ -87,7 +87,7 @@
     display: none; /* Hide text as per design */
 }
 
-.bottom-left-controls {
+.bottom-center-controls {
     position: absolute;
     bottom: 20px;
     left: 50%;
@@ -98,8 +98,11 @@
     z-index: 90;
 }
 
-/* Trash Area - Repositioned and restyled */
+/* Trash Area - Final Position */
 .trash-area {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
     background-color: white;
     color: #555;
     border: 1px solid #ccc;
@@ -111,6 +114,7 @@
     transition: background-color 0.2s, color 0.2s, transform 0.2s, box-shadow 0.2s;
     cursor: pointer;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    z-index: 90;
 }
 
 .trash-area.hovered {

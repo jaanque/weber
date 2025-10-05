@@ -660,13 +660,8 @@ const Canvas = () => {
         <button className="share-button-float">Share</button>
       </div>
 
-      <div className="bottom-left-controls">
+      <div className="bottom-center-controls">
         <ModeToolbar toolMode={toolMode} setToolMode={setToolMode} />
-        {isDragging && (
-          <div ref={trashDrop} className={`trash-area ${isTrashOver ? 'hovered' : ''}`}>
-            <FaTrashAlt size={24} />
-          </div>
-        )}
       </div>
 
       <aside className="floating-toolbar">
@@ -719,6 +714,11 @@ const Canvas = () => {
         })}
       </div>
 
+      {isDragging && (
+        <div ref={trashDrop} className={`trash-area ${isTrashOver ? 'hovered' : ''}`}>
+          <FaTrashAlt size={24} />
+        </div>
+      )}
     </div>
   );
 };
