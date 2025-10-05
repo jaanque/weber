@@ -251,13 +251,12 @@ const Canvas = () => {
     }));
   };
 
-  // --- Drag and Drop Logic ---
+  // --- Enhanced Drag and Drop Logic with Smart Guides and Snapping ---
   const [, drop] = useDrop(() => ({
     accept: [ItemTypes.TEXT, ItemTypes.SHAPE],
     hover(item, monitor) {
       if (!canvasRef.current || !monitor.isOver({ shallow: true })) {
         setGuides([]);
-        setDistanceLines([]);
         return;
       }
 
@@ -268,6 +267,7 @@ const Canvas = () => {
       const { width, height } = item;
       let currentLeft, currentTop;
 
+      // Get the current position of the dragged item
       if (item.id) {
         const delta = monitor.getDifferenceFromInitialOffset();
         if (!delta) return;
@@ -278,133 +278,161 @@ const Canvas = () => {
         currentTop = Math.round(clientOffset.y - canvasRect.top - (height / 2));
       }
 
-      const SNAP_THRESHOLD = 5;
+      const SNAP_THRESHOLD = 6;
       const newGuides = [];
-      const newDistanceLines = [];
 
-      // Canvas center guides
+      const draggedGeom = {
+          left: currentLeft,
+          top: currentTop,
+          hCenter: currentLeft + width / 2,
+          vCenter: currentTop + height / 2,
+          right: currentLeft + width,
+          bottom: currentTop + height,
+      };
+
+      // Check for snapping against other items
+      Object.values(itemsRef.current).forEach(otherItem => {
+          if (!otherItem || otherItem.id === item.id) return;
+
+          const staticGeom = {
+              left: otherItem.left,
+              top: otherItem.top,
+              hCenter: otherItem.left + otherItem.width / 2,
+              vCenter: otherItem.top + otherItem.height / 2,
+              right: otherItem.left + otherItem.width,
+              bottom: otherItem.top + otherItem.height,
+          };
+
+          const verticalAlignments = [
+              { p1: draggedGeom.left, p2: staticGeom.left }, { p1: draggedGeom.left, p2: staticGeom.right }, { p1: draggedGeom.hCenter, p2: staticGeom.hCenter },
+              { p1: draggedGeom.right, p2: staticGeom.left }, { p1: draggedGeom.right, p2: staticGeom.right },
+          ];
+          const horizontalAlignments = [
+              { p1: draggedGeom.top, p2: staticGeom.top }, { p1: draggedGeom.top, p2: staticGeom.bottom }, { p1: draggedGeom.vCenter, p2: staticGeom.vCenter },
+              { p1: draggedGeom.bottom, p2: staticGeom.top }, { p1: draggedGeom.bottom, p2: staticGeom.bottom },
+          ];
+
+          verticalAlignments.forEach(align => {
+              if (Math.abs(align.p1 - align.p2) < SNAP_THRESHOLD) {
+                  newGuides.push({ orientation: 'vertical', left: align.p2 });
+              }
+          });
+          horizontalAlignments.forEach(align => {
+              if (Math.abs(align.p1 - align.p2) < SNAP_THRESHOLD) {
+                  newGuides.push({ orientation: 'horizontal', top: align.p2 });
+              }
+          });
+      });
+
+      // Check for canvas center guides
       const canvasCenterX = canvasRect.width / 2;
       const canvasCenterY = canvasRect.height / 2;
-      const itemCenterX = currentLeft + width / 2;
-      const itemCenterY = currentTop + height / 2;
+      if (Math.abs(draggedGeom.hCenter - canvasCenterX) < SNAP_THRESHOLD) {
+          newGuides.push({ orientation: 'vertical', left: canvasCenterX });
+      }
+      if (Math.abs(draggedGeom.vCenter - canvasCenterY) < SNAP_THRESHOLD) {
+          newGuides.push({ orientation: 'horizontal', top: canvasCenterY });
+      }
 
-      // Vertical guide for horizontal center alignment
-      if (Math.abs(itemCenterX - canvasCenterX) < SNAP_THRESHOLD) {
-        newGuides.push({ orientation: 'vertical', left: canvasCenterX });
-      }
-      // Horizontal guide for vertical center alignment
-      if (Math.abs(itemCenterY - canvasCenterY) < SNAP_THRESHOLD) {
-        newGuides.push({ orientation: 'horizontal', top: canvasCenterY });
-      }
       setGuides(newGuides);
-
-      // Distance lines to edges (only show if close to edge)
-      const DISTANCE_THRESHOLD = 50;
-      if (currentTop < DISTANCE_THRESHOLD && currentTop > 0) {
-        newDistanceLines.push({ x1: currentLeft + width/2, y1: 0, x2: currentLeft + width/2, y2: currentTop, distance: currentTop });
-      }
-      if (currentLeft < DISTANCE_THRESHOLD && currentLeft > 0) {
-        newDistanceLines.push({ x1: 0, y1: currentTop + height/2, x2: currentLeft, y2: currentTop + height/2, distance: currentLeft });
-      }
-      const rightEdge = currentLeft + width;
-      const distToRight = canvasRect.width - rightEdge;
-      if (distToRight < DISTANCE_THRESHOLD && distToRight > 0) {
-        newDistanceLines.push({ x1: rightEdge, y1: currentTop + height/2, x2: canvasRect.width, y2: currentTop + height/2, distance: Math.round(distToRight) });
-      }
-      const bottomEdge = currentTop + height;
-      const distToBottom = canvasRect.height - bottomEdge;
-      if (distToBottom < DISTANCE_THRESHOLD && distToBottom > 0) {
-        newDistanceLines.push({ x1: currentLeft + width/2, y1: bottomEdge, x2: currentLeft + width/2, y2: canvasRect.height, distance: Math.round(distToBottom) });
-      }
-      setDistanceLines(newDistanceLines);
     },
     drop: (item, monitor) => {
-      setGuides([]);
-      setDistanceLines([]);
-      if (!canvasRef.current) return;
+        setGuides([]); // Clear guides on drop
+        if (!canvasRef.current) return;
 
-      const canvasRect = canvasRef.current.getBoundingClientRect();
-      let finalLeft, finalTop;
+        const canvasRect = canvasRef.current.getBoundingClientRect();
+        let finalLeft, finalTop;
 
-      if (item.id) {
-        const delta = monitor.getDifferenceFromInitialOffset();
-        if (!delta) return;
-        finalLeft = Math.round(item.left + delta.x);
-        finalTop = Math.round(item.top + delta.y);
-      } else {
-        const clientOffset = monitor.getClientOffset();
-        if (!clientOffset) return;
-        finalLeft = Math.round(clientOffset.x - canvasRect.left - (item.width / 2));
-        finalTop = Math.round(clientOffset.y - canvasRect.top - (item.height / 2));
-      }
-
-      const { width, height } = item;
-      const SNAP_THRESHOLD = 5;
-      const canvasCenterX = canvasRect.width / 2;
-      const canvasCenterY = canvasRect.height / 2;
-      const itemCenterX = finalLeft + width / 2;
-      const itemCenterY = finalTop + height / 2;
-
-      // Snap to center
-      if (Math.abs(itemCenterX - canvasCenterX) < SNAP_THRESHOLD) {
-        finalLeft = Math.round(canvasCenterX - width / 2);
-      }
-      if (Math.abs(itemCenterY - canvasCenterY) < SNAP_THRESHOLD) {
-        finalTop = Math.round(canvasCenterY - height / 2);
-      }
-
-      // Do not move item if it's a new one, as it will be handled by createItem
-      if (item.id) { // Existing item
-        moveItem(item.id, finalLeft, finalTop);
-      } else { // New item
-        const newId = crypto.randomUUID();
-        let newItem;
-
-        if (item.type === ItemTypes.TEXT) {
-            newItem = {
-              id: newId,
-              type: ItemTypes.TEXT,
-              project_id: projectId,
-              left: finalLeft,
-              top: finalTop,
-              content: 'Text area',
-              width: item.width,
-              height: item.height,
-              rotation: 0,
-              style: {
-                fontSize: '16px',
-                fontWeight: 'normal',
-                fontStyle: 'normal',
-                textDecoration: 'none',
-                fontFamily: 'Arial',
-                color: '#000000',
-                textAlign: 'left',
-              },
-            };
-        } else if (item.type === ItemTypes.SHAPE) {
-            newItem = {
-                id: newId,
-                type: ItemTypes.SHAPE,
-                shapeType: item.shapeType,
-                project_id: projectId,
-                left: finalLeft,
-                top: finalTop,
-                width: item.width,
-                height: item.height,
-                rotation: 0,
-                style: {
-                    color: '#cccccc',
-                    borderColor: '#333333',
-                    borderWidth: 2,
-                },
-            };
+        // Calculate initial drop position
+        if (item.id) {
+            const delta = monitor.getDifferenceFromInitialOffset();
+            if (!delta) return; // Should not happen on drop
+            finalLeft = Math.round(item.left + delta.x);
+            finalTop = Math.round(item.top + delta.y);
+        } else {
+            const clientOffset = monitor.getClientOffset();
+            if (!clientOffset) return;
+            finalLeft = Math.round(clientOffset.x - canvasRect.left - (item.width / 2));
+            finalTop = Math.round(clientOffset.y - canvasRect.top - (item.height / 2));
         }
-        if (newItem) {
-            setState(prev => ({ ...prev, [newId]: newItem }));
+
+        const { width, height } = item;
+        const SNAP_THRESHOLD = 6;
+        let isSnappedX = false;
+        let isSnappedY = false;
+
+        const draggedGeom = {
+            left: finalLeft, top: finalTop, hCenter: finalLeft + width / 2,
+            vCenter: finalTop + height / 2, right: finalLeft + width, bottom: finalTop + height
+        };
+
+        // --- Snapping Logic (repeated from hover to determine final position) ---
+        Object.values(itemsRef.current).forEach(otherItem => {
+            if (!otherItem || (item.id && otherItem.id === item.id)) return;
+
+            const staticGeom = {
+                left: otherItem.left, top: otherItem.top, hCenter: otherItem.left + otherItem.width / 2,
+                vCenter: otherItem.top + otherItem.height / 2, right: otherItem.left + otherItem.width, bottom: otherItem.top + otherItem.height
+            };
+
+            // Vertical snapping
+            if (!isSnappedX) {
+                const verticalAlignments = [
+                    { p1: draggedGeom.left, p2: staticGeom.left }, { p1: draggedGeom.left, p2: staticGeom.right }, { p1: draggedGeom.hCenter, p2: staticGeom.hCenter },
+                    { p1: draggedGeom.right, p2: staticGeom.left }, { p1: draggedGeom.right, p2: staticGeom.right },
+                ];
+                for (const align of verticalAlignments) {
+                    if (Math.abs(align.p1 - align.p2) < SNAP_THRESHOLD) {
+                        finalLeft -= (align.p1 - align.p2);
+                        isSnappedX = true;
+                        break;
+                    }
+                }
+            }
+            // Horizontal snapping
+            if (!isSnappedY) {
+                const horizontalAlignments = [
+                    { p1: draggedGeom.top, p2: staticGeom.top }, { p1: draggedGeom.top, p2: staticGeom.bottom }, { p1: draggedGeom.vCenter, p2: staticGeom.vCenter },
+                    { p1: draggedGeom.bottom, p2: staticGeom.top }, { p1: draggedGeom.bottom, p2: staticGeom.bottom },
+                ];
+                 for (const align of horizontalAlignments) {
+                    if (Math.abs(align.p1 - align.p2) < SNAP_THRESHOLD) {
+                        finalTop -= (align.p1 - align.p2);
+                        isSnappedY = true;
+                        break;
+                    }
+                }
+            }
+        });
+
+        // Canvas center snapping as a fallback
+        const canvasCenterX = canvasRect.width / 2;
+        const canvasCenterY = canvasRect.height / 2;
+        if (!isSnappedX && Math.abs(draggedGeom.hCenter - canvasCenterX) < SNAP_THRESHOLD) {
+            finalLeft = Math.round(canvasCenterX - width / 2);
         }
-      }
+        if (!isSnappedY && Math.abs(draggedGeom.vCenter - canvasCenterY) < SNAP_THRESHOLD) {
+            finalTop = Math.round(canvasCenterY - height / 2);
+        }
+
+        // --- End Snapping Logic ---
+
+        if (item.id) {
+            moveItem(item.id, finalLeft, finalTop);
+        } else {
+            const newId = crypto.randomUUID();
+            let newItem;
+            if (item.type === ItemTypes.TEXT) {
+                newItem = { id: newId, type: ItemTypes.TEXT, project_id: projectId, left: finalLeft, top: finalTop, content: 'Text area', width: item.width, height: item.height, rotation: 0, style: { fontSize: '16px', fontWeight: 'normal', fontStyle: 'normal', textDecoration: 'none', fontFamily: 'Arial', color: '#000000', textAlign: 'left' } };
+            } else if (item.type === ItemTypes.SHAPE) {
+                newItem = { id: newId, type: ItemTypes.SHAPE, shapeType: item.shapeType, project_id: projectId, left: finalLeft, top: finalTop, width: item.width, height: item.height, rotation: 0, style: { color: '#cccccc', borderColor: '#333333', borderWidth: 2 } };
+            }
+            if (newItem) {
+                setState(prev => ({ ...prev, [newId]: newItem }));
+            }
+        }
     },
-  }), [moveItem, setState, projectId]);
+  }), [items, moveItem, setState, projectId]);
 
   const [{ isOver: isTrashOver }, trashDrop] = useDrop(() => ({
     accept: [ItemTypes.TEXT, ItemTypes.SHAPE],
