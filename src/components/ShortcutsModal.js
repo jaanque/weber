@@ -27,6 +27,15 @@ const ShortcutsModal = ({ isOpen, onClose }) => {
               <span className="shortcut-key">Shift + Ctrl/Cmd + Z</span>
               <span className="shortcut-action">Redo last action</span>
             </li>
+            <li className="shortcut-divider"></li>
+            <li>
+              <span className="shortcut-key">Hold Space + Drag</span>
+              <span className="shortcut-action">Pan around the canvas</span>
+            </li>
+            <li>
+              <span className="shortcut-key">Mouse Wheel</span>
+              <span className="shortcut-action">Zoom in and out</span>
+            </li>
           </ul>
         </div>
       </div>

@@ -80,6 +80,8 @@ const Canvas = () => {
   const [lastSaved, setLastSaved] = useState(null);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [viewTransform, setViewTransform] = useState({ scale: 1, x: 0, y: 0 });
+  const panState = useRef({ isSpaceDown: false, isPanning: false, start: { x: 0, y: 0 } });
   const itemsRef = useRef(items);
   const canvasRef = useRef(null);
 
@@ -255,7 +257,7 @@ const Canvas = () => {
   const [, drop] = useDrop(() => ({
     accept: [ItemTypes.TEXT, ItemTypes.SHAPE],
     hover(item, monitor) {
-      if (!canvasRef.current || !monitor.isOver({ shallow: true })) {
+      if (!canvasRef.current || !monitor.isOver({ shallow: true }) || panState.current.isPanning) {
         setGuides([]);
         return;
       }
@@ -267,15 +269,17 @@ const Canvas = () => {
       const { width, height } = item;
       let currentLeft, currentTop;
 
-      // Get the current position of the dragged item
+      // Get the current position of the dragged item, adjusted for zoom and pan
       if (item.id) {
         const delta = monitor.getDifferenceFromInitialOffset();
         if (!delta) return;
-        currentLeft = Math.round(item.left + delta.x);
-        currentTop = Math.round(item.top + delta.y);
+        currentLeft = Math.round(item.left + delta.x / viewTransform.scale);
+        currentTop = Math.round(item.top + delta.y / viewTransform.scale);
       } else {
-        currentLeft = Math.round(clientOffset.x - canvasRect.left - (width / 2));
-        currentTop = Math.round(clientOffset.y - canvasRect.top - (height / 2));
+        const screenX = clientOffset.x - canvasRect.left;
+        const screenY = clientOffset.y - canvasRect.top;
+        currentLeft = Math.round((screenX - viewTransform.x) / viewTransform.scale - (width / 2));
+        currentTop = Math.round((screenY - viewTransform.y) / viewTransform.scale - (height / 2));
       }
 
       const SNAP_THRESHOLD = 6;
@@ -343,17 +347,19 @@ const Canvas = () => {
         const canvasRect = canvasRef.current.getBoundingClientRect();
         let finalLeft, finalTop;
 
-        // Calculate initial drop position
+        // Calculate initial drop position, adjusted for zoom and pan
         if (item.id) {
             const delta = monitor.getDifferenceFromInitialOffset();
-            if (!delta) return; // Should not happen on drop
-            finalLeft = Math.round(item.left + delta.x);
-            finalTop = Math.round(item.top + delta.y);
+            if (!delta) return;
+            finalLeft = Math.round(item.left + delta.x / viewTransform.scale);
+            finalTop = Math.round(item.top + delta.y / viewTransform.scale);
         } else {
             const clientOffset = monitor.getClientOffset();
             if (!clientOffset) return;
-            finalLeft = Math.round(clientOffset.x - canvasRect.left - (item.width / 2));
-            finalTop = Math.round(clientOffset.y - canvasRect.top - (item.height / 2));
+            const screenX = clientOffset.x - canvasRect.left;
+            const screenY = clientOffset.y - canvasRect.top;
+            finalLeft = Math.round((screenX - viewTransform.x) / viewTransform.scale - (item.width / 2));
+            finalTop = Math.round((screenY - viewTransform.y) / viewTransform.scale - (item.height / 2));
         }
 
         const { width, height } = item;
@@ -466,22 +472,87 @@ const Canvas = () => {
 
   const selectedItem = selectedItemId ? items[selectedItemId] : null;
 
-  const getToolbarStyle = () => {
-      if (!selectedItem || !canvasRef.current) return {};
+  const handleWheel = useCallback((e) => {
+    e.preventDefault();
+    const { deltaY } = e;
+    const scaleAmount = -deltaY * 0.0005; // Fine-tuned sensitivity
 
-      const canvasRect = canvasRef.current.getBoundingClientRect();
-      const itemTop = selectedItem.top;
-      const itemLeft = selectedItem.left;
+    setViewTransform(prevTransform => {
+        const newScale = Math.min(Math.max(0.2, prevTransform.scale + scaleAmount), 4); // Clamp scale
+        const rect = canvasRef.current.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
 
-      const top = itemTop - 60; // Default position above the item
-      const left = itemLeft;
+        // Calculate new offset to keep the point under the mouse stationary
+        const newX = mouseX - (mouseX - prevTransform.x) * (newScale / prevTransform.scale);
+        const newY = mouseY - (mouseY - prevTransform.y) * (newScale / prevTransform.scale);
 
-      // Flip below if not enough space above
-      if (top < 0) {
-          return { top: itemTop + selectedItem.height + 10, left };
+        return { scale: newScale, x: newX, y: newY };
+    });
+  }, []);
+
+  // --- Panning Logic ---
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const handleKeyDown = (e) => {
+      if (e.code === 'Space' && !e.repeat) {
+        e.preventDefault();
+        panState.current.isSpaceDown = true;
+        document.body.classList.add('panning-active');
       }
-      return { top, left };
-  };
+    };
+
+    const handleKeyUp = (e) => {
+      if (e.code === 'Space') {
+        panState.current.isSpaceDown = false;
+        panState.current.isPanning = false;
+        document.body.classList.remove('panning-active', 'panning-grabbing');
+      }
+    };
+
+    const handleMouseDown = (e) => {
+      if (panState.current.isSpaceDown) {
+        e.preventDefault();
+        e.stopPropagation();
+        panState.current.isPanning = true;
+        panState.current.start = { x: e.clientX, y: e.clientY };
+        document.body.classList.add('panning-grabbing');
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (panState.current.isPanning) {
+        panState.current.isPanning = false;
+        document.body.classList.remove('panning-grabbing');
+      }
+    };
+
+    const handleMouseMove = (e) => {
+      if (panState.current.isPanning) {
+        const dx = e.clientX - panState.current.start.x;
+        const dy = e.clientY - panState.current.start.y;
+        setViewTransform(prev => ({ ...prev, x: prev.x + dx, y: prev.y + dy }));
+        panState.current.start = { x: e.clientX, y: e.clientY };
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    canvas.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      canvas.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      document.body.classList.remove('panning-active', 'panning-grabbing');
+    };
+  }, []); // Empty dependency array to run once
 
   if (loading) {
     return <div>Loading...</div>;
@@ -496,6 +567,7 @@ const Canvas = () => {
       className="canvas-container" // This will be styled as full-screen
       onClick={handleCanvasClick}
       data-testid="canvas-area"
+      onWheel={handleWheel}
     >
       <CustomDragLayer />
       <SaveStatus lastSaved={lastSaved} />
@@ -558,31 +630,37 @@ const Canvas = () => {
           />
         </div>
       )}
-      <AlignmentGuides guides={guides} />
-      <DistanceLines lines={distanceLines} />
-      {Object.values(items).map((item) => {
-        if (item.type === ItemTypes.SHAPE) {
-          return (
-            <GeometricShape
-              key={item.id}
-              {...item}
-              onResize={handleResize}
-              onRotate={handleRotate}
-              onSelect={handleSelect}
-              isSelected={selectedItemId === item.id}
-            />
-          );
-        }
-        return (<TextBox
-          key={item.id}
-          {...item}
-          onTextChange={handleTextChange}
-          onResize={handleResize}
-          onRotate={handleRotate}
-          onSelect={handleSelect}
-          isSelected={selectedItemId === item.id}
-        />);
-      })}
+
+      <div
+        className="canvas-viewport"
+        style={{ transform: `translate(${viewTransform.x}px, ${viewTransform.y}px) scale(${viewTransform.scale})`}}
+      >
+        <AlignmentGuides guides={guides} />
+        <DistanceLines lines={distanceLines} />
+        {Object.values(items).map((item) => {
+          if (item.type === ItemTypes.SHAPE) {
+            return (
+              <GeometricShape
+                key={item.id}
+                {...item}
+                onResize={handleResize}
+                onRotate={handleRotate}
+                onSelect={handleSelect}
+                isSelected={selectedItemId === item.id}
+              />
+            );
+          }
+          return (<TextBox
+            key={item.id}
+            {...item}
+            onTextChange={handleTextChange}
+            onResize={handleResize}
+            onRotate={handleRotate}
+            onSelect={handleSelect}
+            isSelected={selectedItemId === item.id}
+          />);
+        })}
+      </div>
 
       {isDragging && (
         <div ref={trashDrop} className={`trash-area ${isTrashOver ? 'hovered' : ''}`}>
