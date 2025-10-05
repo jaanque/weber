@@ -15,6 +15,7 @@ import SaveStatus from './SaveStatus';
 import CustomDragLayer from './CustomDragLayer';
 import ShortcutsModal from './ShortcutsModal';
 import UserProfile from './UserProfile';
+import ModeToolbar from './ModeToolbar';
 import './Canvas.css';
 import './DistanceLines.css';
 import './StylingToolbar.css';
@@ -24,6 +25,7 @@ import './GeometricShape.css';
 import './ShapePicker.css';
 import './ShapeTool.css';
 import './UserProfile.css';
+import './ModeToolbar.css';
 
 // Debounce function to limit the rate of API calls
 const debounce = (func, delay) => {
@@ -81,6 +83,7 @@ const Canvas = () => {
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [viewTransform, setViewTransform] = useState({ scale: 1, x: 0, y: 0 });
+  const [toolMode, setToolMode] = useState('select'); // 'select' or 'pan'
   const panState = useRef({ isSpaceDown: false, isPanning: false, start: { x: 0, y: 0 } });
   const itemsRef = useRef(items);
   const canvasRef = useRef(null);
@@ -236,6 +239,7 @@ const Canvas = () => {
   }, [setState]);
 
   const handleSelect = (id) => {
+    if (toolMode === 'pan') return;
     setSelectedItemId(id);
   }
 
@@ -256,6 +260,7 @@ const Canvas = () => {
   // --- Enhanced Drag and Drop Logic with Smart Guides and Snapping ---
   const [, drop] = useDrop(() => ({
     accept: [ItemTypes.TEXT, ItemTypes.SHAPE],
+    canDrop: () => toolMode === 'select',
     hover(item, monitor) {
       if (!canvasRef.current || !monitor.isOver({ shallow: true }) || panState.current.isPanning) {
         setGuides([]);
@@ -438,7 +443,7 @@ const Canvas = () => {
             }
         }
     },
-  }), [items, moveItem, setState, projectId]);
+  }), [items, moveItem, setState, projectId, toolMode, viewTransform]);
 
   const [{ isOver: isTrashOver }, trashDrop] = useDrop(() => ({
     accept: [ItemTypes.TEXT, ItemTypes.SHAPE],
@@ -493,6 +498,19 @@ const Canvas = () => {
 
   // --- Panning Logic ---
   useEffect(() => {
+    // Effect for cursor style based on toolMode
+    if (toolMode === 'pan') {
+      document.body.classList.add('panning-active');
+    } else {
+      document.body.classList.remove('panning-active');
+    }
+    // Cleanup function to remove class when component unmounts or mode changes
+    return () => {
+      document.body.classList.remove('panning-active');
+    };
+  }, [toolMode]);
+
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -513,7 +531,7 @@ const Canvas = () => {
     };
 
     const handleMouseDown = (e) => {
-      if (panState.current.isSpaceDown) {
+      if (panState.current.isSpaceDown || toolMode === 'pan') {
         e.preventDefault();
         e.stopPropagation();
         panState.current.isPanning = true;
@@ -552,7 +570,7 @@ const Canvas = () => {
       window.removeEventListener('mouseup', handleMouseUp);
       document.body.classList.remove('panning-active', 'panning-grabbing');
     };
-  }, []); // Empty dependency array to run once
+  }, [toolMode]);
 
   if (loading) {
     return <div>Loading...</div>;
@@ -615,6 +633,7 @@ const Canvas = () => {
         <button className="share-button-float">Share</button>
       </div>
 
+      <ModeToolbar toolMode={toolMode} setToolMode={setToolMode} />
 
       <aside className="floating-toolbar">
           <DraggableTool type={ItemTypes.TEXT} icon={<FaFont />} text="Text" />
