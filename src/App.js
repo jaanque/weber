@@ -7,6 +7,7 @@ import Home from './components/Home';
 import Login from './components/Login';
 import SignUp from './components/SignUp';
 import Canvas from './components/Canvas';
+import PublicView from './components/PublicView';
 import './App.css';
 
 // The AuthenticatedLayout now only fetches data and provides it via context.
@@ -90,6 +91,7 @@ function App() {
       <Routes>
         <Route path="/login" element={!session ? <Login /> : <Navigate to="/" />} />
         <Route path="/signup" element={!session ? <SignUp /> : <Navigate to="/" />} />
+        <Route path="/public/:projectId" element={<PublicView />} />
         <Route element={session ? <AuthenticatedLayout /> : <Navigate to="/login" />}>
           <Route path="/" element={<Home />} />
           <Route path="/projects/:projectId" element={<Canvas />} />

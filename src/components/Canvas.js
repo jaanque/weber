@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDrag, useDrop } from 'react-dnd';
-import { FaFont, FaTrashAlt, FaArrowLeft, FaUndo, FaRedo, FaKeyboard, FaMousePointer, FaHandPaper } from 'react-icons/fa';
+import { FaFont, FaTrashAlt, FaArrowLeft, FaUndo, FaRedo, FaKeyboard, FaMousePointer, FaHandPaper, FaRegWindowMaximize } from 'react-icons/fa';
 import { ItemTypes } from './ItemTypes';
 import { supabase } from '../supabaseClient';
 import useUndoRedo from '../hooks/useUndoRedo';
@@ -15,6 +15,8 @@ import SaveStatus from './SaveStatus';
 import CustomDragLayer from './CustomDragLayer';
 import ShortcutsModal from './ShortcutsModal';
 import UserProfile from './UserProfile';
+import PublicationFrame from './PublicationFrame';
+import PublicationModal from './PublicationModal';
 import './Canvas.css';
 import './DistanceLines.css';
 import './StylingToolbar.css';
@@ -24,6 +26,8 @@ import './GeometricShape.css';
 import './ShapePicker.css';
 import './ShapeTool.css';
 import './UserProfile.css';
+import './PublicationFrame.css';
+import './PublicationModal.css';
 
 // Debounce function to limit the rate of API calls
 const debounce = (func, delay) => {
@@ -83,6 +87,15 @@ const Canvas = () => {
   const [viewTransform, setViewTransform] = useState({ scale: 1, x: 0, y: 0 });
   const [toolMode, setToolMode] = useState('select'); // 'select' or 'pan'
   const [nextZIndex, setNextZIndex] = useState(1);
+  const [isPublicationFrameVisible, setIsPublicationFrameVisible] = useState(false);
+  const [publicationFrame, setPublicationFrame] = useState({
+    left: 50,
+    top: 50,
+    width: 1024,
+    height: 768,
+  });
+  const [isPublicationModalOpen, setIsPublicationModalOpen] = useState(false);
+  const [publicUrl, setPublicUrl] = useState('');
   const panState = useRef({ isSpaceDown: false, isPanning: false, start: { x: 0, y: 0 } });
   const itemsRef = useRef(items);
   const canvasRef = useRef(null);
@@ -285,9 +298,41 @@ const Canvas = () => {
     }));
   };
 
+  const handlePublicationFrameDrag = (left, top) => {
+    setPublicationFrame(prev => ({ ...prev, left, top }));
+  };
+
+  const handlePublicationFrameResize = (width, height) => {
+    setPublicationFrame(prev => ({ ...prev, width, height }));
+  };
+
+  const handlePublish = async () => {
+    if (!isPublicationFrameVisible) {
+      alert('Please make the publication frame visible to set the public area before publishing.');
+      return;
+    }
+
+    const { error } = await supabase
+      .from('projects')
+      .update({
+        is_public: true,
+        publication_details: publicationFrame,
+      })
+      .eq('id', projectId);
+
+    if (error) {
+      console.error('Error publishing project:', error);
+      alert('There was an error publishing your project. Please try again.');
+    } else {
+      const url = `${window.location.origin}/public/${projectId}`;
+      setPublicUrl(url);
+      setIsPublicationModalOpen(true);
+    }
+  };
+
   // --- Enhanced Drag and Drop Logic with Smart Guides and Snapping ---
   const [, drop] = useDrop(() => ({
-    accept: [ItemTypes.TEXT, ItemTypes.SHAPE],
+    accept: [ItemTypes.TEXT, ItemTypes.SHAPE, ItemTypes.PUBLICATION_FRAME],
     canDrop: () => toolMode === 'select',
     hover(item, monitor) {
       if (!canvasRef.current || !monitor.isOver({ shallow: true }) || panState.current.isPanning) {
@@ -376,6 +421,17 @@ const Canvas = () => {
     drop: (item, monitor) => {
         setGuides([]); // Clear guides on drop
         if (!canvasRef.current) return;
+
+        const delta = monitor.getDifferenceFromInitialOffset();
+        if (!delta) return;
+
+        const finalLeft = Math.round(item.left + delta.x / viewTransform.scale);
+        const finalTop = Math.round(item.top + delta.y / viewTransform.scale);
+
+        if (item.type === ItemTypes.PUBLICATION_FRAME) {
+          handlePublicationFrameDrag(finalLeft, finalTop);
+          return;
+        }
 
         const canvasRect = canvasRef.current.getBoundingClientRect();
         let finalLeft, finalTop;
@@ -615,6 +671,11 @@ const Canvas = () => {
       <CustomDragLayer />
       <SaveStatus lastSaved={lastSaved} />
       <ShortcutsModal isOpen={isShortcutsModalOpen} onClose={() => setIsShortcutsModalOpen(false)} />
+      <PublicationModal
+        isOpen={isPublicationModalOpen}
+        onClose={() => setIsPublicationModalOpen(false)}
+        publicUrl={publicUrl}
+      />
 
       {/* Floating UI Elements */}
       <div className="floating-ui-top-left">
@@ -648,6 +709,13 @@ const Canvas = () => {
       </div>
 
       <div className="floating-ui-top-right">
+        <button
+          onClick={() => setIsPublicationFrameVisible(prev => !prev)}
+          className={`action-button-float ${isPublicationFrameVisible ? 'active' : ''}`}
+          title="Toggle Publication Area"
+        >
+          <FaRegWindowMaximize />
+        </button>
         <button onClick={() => setIsShortcutsModalOpen(true)} className="action-button-float" aria-label="Show shortcuts">
             <FaKeyboard />
         </button>
@@ -656,7 +724,7 @@ const Canvas = () => {
 
       <div className="floating-ui-bottom-right">
         <button className="share-button-float">Share</button>
-        <button className="publish-button-float">Publish</button>
+        <button className="publish-button-float" onClick={handlePublish}>Publish</button>
       </div>
 
       <aside className="floating-toolbar">
@@ -697,6 +765,15 @@ const Canvas = () => {
         style={{ transform: `translate(${viewTransform.x}px, ${viewTransform.y}px) scale(${viewTransform.scale})`}}
         onClick={handleCanvasClick}
       >
+        {isPublicationFrameVisible && (
+            <PublicationFrame
+                left={publicationFrame.left}
+                top={publicationFrame.top}
+                width={publicationFrame.width}
+                height={publicationFrame.height}
+                onResize={handlePublicationFrameResize}
+            />
+        )}
         <AlignmentGuides guides={guides} />
         <DistanceLines lines={distanceLines} />
         {Object.values(items).sort((a, b) => (a.zIndex || 0) - (b.zIndex || 0)).map((item) => {

@@ -1,0 +1,27 @@
+.publication-frame-wrapper {
+  z-index: 1000; /* Ensure it's on top of other canvas items */
+}
+
+.publication-frame {
+  border: 2px dashed #007bff;
+  background-color: rgba(0, 123, 255, 0.05);
+  box-sizing: border-box;
+}
+
+.publication-frame-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none; /* Allow clicks to pass through to the canvas */
+}
+
+.publication-frame-label {
+  background-color: #007bff;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}

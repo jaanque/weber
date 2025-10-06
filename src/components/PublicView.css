@@ -1,0 +1,28 @@
+.public-view-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: #f0f2f5;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.public-canvas {
+  background-color: white;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden; /* Ensures items don't spill out */
+}
+
+.public-view-status {
+  font-size: 18px;
+  color: #666;
+}
+
+.public-view-footer {
+  margin-top: 20px;
+  font-size: 14px;
+  color: #999;
+}
