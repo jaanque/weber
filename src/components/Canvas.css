@@ -154,10 +154,37 @@
 }
 
 .floating-ui-bottom-left {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
-    z-index: 90;
+    display: none; /* No longer used */
+}
+
+.toolbar-divider-horizontal {
+    height: 1px;
+    background-color: #e0e0e0;
+    margin: 8px 0;
+}
+
+.mode-button {
+    background-color: transparent;
+    border: none;
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 20px;
+    color: #555;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.mode-button:hover {
+    background-color: #f0f0f0;
+}
+
+.mode-button.active {
+    background-color: var(--primary-color);
+    color: white;
 }
 
 /* Styling for the elements within the floating containers */

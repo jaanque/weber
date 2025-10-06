@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDrag, useDrop } from 'react-dnd';
-import { FaFont, FaTrashAlt, FaArrowLeft, FaUndo, FaRedo, FaKeyboard } from 'react-icons/fa';
+import { FaFont, FaTrashAlt, FaArrowLeft, FaUndo, FaRedo, FaKeyboard, FaMousePointer, FaHandPaper } from 'react-icons/fa';
 import { ItemTypes } from './ItemTypes';
 import { supabase } from '../supabaseClient';
 import useUndoRedo from '../hooks/useUndoRedo';
@@ -15,7 +15,6 @@ import SaveStatus from './SaveStatus';
 import CustomDragLayer from './CustomDragLayer';
 import ShortcutsModal from './ShortcutsModal';
 import UserProfile from './UserProfile';
-import ModeToolbar from './ModeToolbar';
 import './Canvas.css';
 import './DistanceLines.css';
 import './StylingToolbar.css';
@@ -25,7 +24,6 @@ import './GeometricShape.css';
 import './ShapePicker.css';
 import './ShapeTool.css';
 import './UserProfile.css';
-import './ModeToolbar.css';
 
 // Debounce function to limit the rate of API calls
 const debounce = (func, delay) => {
@@ -661,14 +659,24 @@ const Canvas = () => {
         <button className="publish-button-float">Publish</button>
       </div>
 
-      <div className="floating-ui-bottom-left">
-        <ModeToolbar toolMode={toolMode} setToolMode={setToolMode} />
-      </div>
-
-
       <aside className="floating-toolbar">
           <DraggableTool type={ItemTypes.TEXT} icon={<FaFont />} text="Text" />
           <ShapeTool />
+          <div className="toolbar-divider-horizontal"></div>
+          <button
+            className={`mode-button ${toolMode === 'select' ? 'active' : ''}`}
+            onClick={() => setToolMode('select')}
+            title="Select & Edit Tool (V)"
+          >
+            <FaMousePointer />
+          </button>
+          <button
+            className={`mode-button ${toolMode === 'pan' ? 'active' : ''}`}
+            onClick={() => setToolMode('pan')}
+            title="Pan Tool (H)"
+          >
+            <FaHandPaper />
+          </button>
       </aside>
 
       {selectedItem && (
