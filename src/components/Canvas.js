@@ -434,7 +434,6 @@ const Canvas = () => {
         }
 
         const canvasRect = canvasRef.current.getBoundingClientRect();
-        let finalLeft, finalTop;
 
         // Calculate initial drop position, adjusted for zoom and pan
         if (item.id) {
